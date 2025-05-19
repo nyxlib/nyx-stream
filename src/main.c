@@ -7,7 +7,6 @@
 
 #include <getopt.h>
 #include <signal.h>
-#include <pthread.h>
 
 #include "mongoose.h"
 
@@ -93,8 +92,6 @@ static client_t *clients = NULL;
 
 static bool volatile redis_waiting = false;
 
-static pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 static void add_client(struct mg_connection *conn, struct mg_str stream)
@@ -110,18 +107,11 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
     client->conn      = conn       ;
     client->stream    = stream     ;
     client->last_ping = mg_millis();
+	client->next      = clients    ;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    conn->fn_data = client;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    pthread_mutex_lock(&global_mutex);
-
-    /**/    client->next = clients; clients = client;
-
-    pthread_mutex_unlock(&global_mutex);
+	conn->fn_data = clients = client;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -141,25 +131,20 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
 static void rm_client(struct mg_connection *conn)
 {
-    pthread_mutex_lock(&global_mutex);
+    for(client_t **pp = &clients; *pp != NULL; pp = &(*pp)->next)
+    {
+        if((*pp)->conn == conn)
+        {
+            MG_INFO(("Closing stream `%.*s`...", (int) (*pp)->stream.len, (*pp)->stream.buf));
 
-    /**/    for(client_t **pp = &clients; *pp != NULL; pp = &(*pp)->next)
-    /**/    {
-    /**/        if((*pp)->conn == conn)
-    /**/        {
-    /**/            MG_INFO(("Closing stream `%.*s`...", (int) (*pp)->stream.len, (*pp)->stream.buf));
-    /**/
-    /**/            client_t *dead = *pp; *pp = (*pp)->next;
-    /**/
-    /**/            free(dead->stream.buf);
-    /**/
-    /**/            free(dead);
-    /**/
-    /**/            break;
-    /**/        }
-    /**/    }
+            client_t *dead = *pp; *pp = (*pp)->next;
 
-    pthread_mutex_unlock(&global_mutex);
+            free(dead->stream.buf);
+
+            free(dead);
+            break;
+        }
+    }
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -177,32 +162,28 @@ static void redis_poll(struct mg_connection *redis_conn)
 
     struct mg_str streams[64];
 
-    pthread_mutex_lock(&global_mutex);
+    for(client_t *client = clients; client != NULL && n_streams < sizeof(streams) / sizeof(struct mg_str); client = client->next)
+    {
+        /*----------------------------------------------------------------------------------------------------*/
 
-    /**/    for(client_t *client = clients; client != NULL && n_streams < sizeof(streams) / sizeof(struct mg_str); client = client->next)
-    /**/    {
-    /**/        /*----------------------------------------------------------------------------------------------------*/
-    /**/
-    /**/        bool found = false;
-    /**/
-    /**/        for(int i = 0; i < n_streams; i++)
-    /**/        {
-    /**/            if(mg_strcmp(client->stream, streams[i]) == 0)
-    /**/            {
-    /**/                found = true;
-    /**/
-    /**/                break;
-    /**/            }
-    /**/        }
-    /**/
-    /**/        /*----------------------------------------------------------------------------------------------------*/
-    /**/
-    /**/        if(found == false) streams[n_streams++] = mg_strdup(client->stream);
-    /**/
-    /**/        /*----------------------------------------------------------------------------------------------------*/
-    /**/    }
+        bool found = false;
 
-    pthread_mutex_unlock(&global_mutex);
+        for(int i = 0; i < n_streams; i++)
+        {
+            if(mg_strcmp(client->stream, streams[i]) == 0)
+            {
+                found = true;
+
+                break;
+            }
+        }
+
+        /*----------------------------------------------------------------------------------------------------*/
+
+        if(found == false) streams[n_streams++] = mg_strdup(client->stream);
+
+        /*----------------------------------------------------------------------------------------------------*/
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -299,157 +280,153 @@ static void redis_handler(struct mg_connection *conn, int event, void *event_dat
         char *p = (char *) conn->recv.buf;
         char *q = (char *) conn->recv.buf;
 
-        pthread_mutex_lock(&global_mutex);
+        for(;;)
+        {
+            /*--------------------------------------------------------------------------------------------------------*/
+            /* EXTRACT STREAM NAME                                                                                    */
+            /*--------------------------------------------------------------------------------------------------------*/
 
-        /**/    for(;;)
-        /**/    {
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/        /* EXTRACT STREAM NAME                                                                            */
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        p = strchr(p, '$');
-        /**/        if(p == NULL) goto __exit;
-        /**/        p += 1;
-        /**/
-        /**/        p = strstr(p, "\r\n");
-        /**/        if(p == NULL) goto __exit;
-        /**/        p += 2;
-        /**/
-        /**/        const char *stream_name_start = p + 0;
-        /**/
-        /**/        p = strstr(p, "\r\n");
-        /**/        if(p == NULL) goto __exit;
-        /**/        p += 2;
-        /**/
-        /**/        const char *stream_name_end = p - 2;
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        stream_name = mg_str_n(stream_name_start, (long) stream_name_end - (long) stream_name_start);
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/        /* EXTRACT STREAM DIM                                                                             */
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        p = strchr(p, '$');
-        /**/        if(p == NULL) goto __exit;
-        /**/        p += 1;
-        /**/
-        /**/        p = strchr(p, '*');
-        /**/        if(p == NULL) goto __exit;
-        /**/        p += 1;
-        /**/
-        /**/        const char *stream_size_start = p + 0;
-        /**/
-        /**/        p = strstr(p, "\r\n");
-        /**/        if(p == NULL) goto __exit;
-        /**/        p += 2;
-        /**/
-        /**/        const char *stream_size_end = p - 2;
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        stream_size = mg_str_n(stream_size_start, (long) stream_size_end - (long) stream_size_start);
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/        /* SEND PAYLOAD AS JSON                                                                           */
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        for(client_t *client = clients; client != NULL; client = client->next)
-        /**/        {
-        /**/            if(mg_strcmp(client->stream, stream_name) == 0)
-        /**/            {
-        /**/                mg_printf(client->conn, "data: {");
-        /**/            }
-        /**/        }
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        int n_fields = mg_str_to_int(stream_size) / 2;
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        for(int i = 0; i < n_fields; i++)
-        /**/        {
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/            /* EXTRACT FIELD KEY                                                                          */
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/
-        /**/            p = strstr(p, "\r\n");
-        /**/            if(p == NULL) goto __exit;
-        /**/            p += 2;
-        /**/
-        /**/            const char *key_start = p + 0;
-        /**/
-        /**/            p = strstr(p, "\r\n");
-        /**/            if(p == NULL) goto __exit;
-        /**/            p += 2;
-        /**/
-        /**/            const char *key_end = p - 2;
-        /**/
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/
-        /**/            int key_len = (long) key_end - (long) key_start;
-        /**/
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/            /* EXTRACT FIELD VAL                                                                          */
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/
-        /**/            p = strstr(p, "\r\n");
-        /**/            if(p == NULL) goto __exit;
-        /**/            p += 2;
-        /**/
-        /**/            const char *val_start = p + 0;
-        /**/
-        /**/            p = strstr(p, "\r\n");
-        /**/            if(p == NULL) goto __exit;
-        /**/            p += 2;
-        /**/
-        /**/            const char *val_end = p - 2;
-        /**/
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/
-        /**/            int val_len = (long) val_end - (long) val_start;
-        /**/
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/            /* EMIT JSON KEY-VAL ENTRY                                                                    */
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/
-        /**/            for(client_t *client = clients; client != NULL; client = client->next)
-        /**/            {
-        /**/                if(mg_strcmp(client->stream, stream_name) == 0)
-        /**/                {
-        /**/                    if(i == n_fields - 1) {
-        /**/                        mg_printf(client->conn, "\"%.*s\":\"%.*s\"", (int) key_len, key_start, (int) val_len, val_start);
-        /**/                    }
-        /**/                    else {
-        /**/                        mg_printf(client->conn, "\"%.*s\":\"%.*s\",", (int) key_len, key_start, (int) val_len, val_start);
-        /**/                    }
-        /**/                }
-        /**/            }
-        /**/
-        /**/            /*--------------------------------------------------------------------------------------------*/
-        /**/        }
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/
-        /**/        for(client_t *client = clients; client != NULL; client = client->next)
-        /**/        {
-        /**/            if(mg_strcmp(client->stream, stream_name) == 0)
-        /**/            {
-        /**/                mg_printf(client->conn, "}\n");
-        /**/
-        /**/                client->last_ping = mg_millis();
-        /**/            }
-        /**/        }
-        /**/
-        /**/        /*------------------------------------------------------------------------------------------------*/
-        /**/    }
-__exit:
-        pthread_mutex_unlock(&global_mutex);
+            p = strchr(p, '$');
+            if(p == NULL) goto __exit;
+            p += 1;
+
+            p = strstr(p, "\r\n");
+            if(p == NULL) goto __exit;
+            p += 2;
+
+            const char *stream_name_start = p + 0;
+
+            p = strstr(p, "\r\n");
+            if(p == NULL) goto __exit;
+            p += 2;
+
+            const char *stream_name_end = p - 2;
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            stream_name = mg_str_n(stream_name_start, (long) stream_name_end - (long) stream_name_start);
+
+            /*--------------------------------------------------------------------------------------------------------*/
+            /* EXTRACT STREAM DIM                                                                                     */
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            p = strchr(p, '$');
+            if(p == NULL) goto __exit;
+            p += 1;
+
+            p = strchr(p, '*');
+            if(p == NULL) goto __exit;
+            p += 1;
+
+            const char *stream_size_start = p + 0;
+
+            p = strstr(p, "\r\n");
+            if(p == NULL) goto __exit;
+            p += 2;
+
+            const char *stream_size_end = p - 2;
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            stream_size = mg_str_n(stream_size_start, (long) stream_size_end - (long) stream_size_start);
+
+            /*--------------------------------------------------------------------------------------------------------*/
+            /* SEND PAYLOAD AS JSON                                                                                   */
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            for(client_t *client = clients; client != NULL; client = client->next)
+            {
+                if(mg_strcmp(client->stream, stream_name) == 0)
+                {
+                    mg_printf(client->conn, "data: {");
+                }
+            }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            int n_fields = mg_str_to_int(stream_size) / 2;
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            for(int i = 0; i < n_fields; i++)
+            {
+                /*----------------------------------------------------------------------------------------------------*/
+                /* EXTRACT FIELD KEY                                                                                  */
+                /*----------------------------------------------------------------------------------------------------*/
+
+                p = strstr(p, "\r\n");
+                if(p == NULL) goto __exit;
+                p += 2;
+
+                const char *key_start = p + 0;
+
+                p = strstr(p, "\r\n");
+                if(p == NULL) goto __exit;
+                p += 2;
+
+                const char *key_end = p - 2;
+
+                /*----------------------------------------------------------------------------------------------------*/
+
+                int key_len = (long) key_end - (long) key_start;
+
+                /*----------------------------------------------------------------------------------------------------*/
+                /* EXTRACT FIELD VAL                                                                                  */
+                /*----------------------------------------------------------------------------------------------------*/
+
+                p = strstr(p, "\r\n");
+                if(p == NULL) goto __exit;
+                p += 2;
+
+                const char *val_start = p + 0;
+
+                p = strstr(p, "\r\n");
+                if(p == NULL) goto __exit;
+                p += 2;
+
+                const char *val_end = p - 2;
+
+                /*----------------------------------------------------------------------------------------------------*/
+
+                int val_len = (long) val_end - (long) val_start;
+
+                /*----------------------------------------------------------------------------------------------------*/
+                /* EMIT JSON KEY-VAL ENTRY                                                                            */
+                /*----------------------------------------------------------------------------------------------------*/
+
+                for(client_t *client = clients; client != NULL; client = client->next)
+                {
+                    if(mg_strcmp(client->stream, stream_name) == 0)
+                    {
+                        if(i == n_fields - 1) {
+                            mg_printf(client->conn, "\"%.*s\":\"%.*s\"", (int) key_len, key_start, (int) val_len, val_start);
+                        }
+                        else {
+                            mg_printf(client->conn, "\"%.*s\":\"%.*s\",", (int) key_len, key_start, (int) val_len, val_start);
+                        }
+                    }
+                }
+
+                /*----------------------------------------------------------------------------------------------------*/
+            }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            for(client_t *client = clients; client != NULL; client = client->next)
+            {
+                if(mg_strcmp(client->stream, stream_name) == 0)
+                {
+                    mg_printf(client->conn, "}\n");
+
+                    client->last_ping = mg_millis();
+                }
+            }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+        }
 
         /*------------------------------------------------------------------------------------------------------------*/
-
+__exit:
         mg_iobuf_del(&conn->recv, 0, (long) p - (long) q);
 
         redis_waiting = false;
@@ -552,7 +529,7 @@ static void parse_args(int argc, char **argv)
 
         int opt = getopt_long(argc, argv, "r:b:s:k:p:h", long_options, NULL);
 
-        if(opt == -1)
+        if(opt < 0)
         {
             break;
         }
