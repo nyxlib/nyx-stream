@@ -108,10 +108,10 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
     client_t *client = (client_t *) malloc(sizeof(struct client_s));
 
-    client->conn      = conn       ;
-    client->stream    = stream     ;
-    client->last_ping = mg_millis();
-    client->next      = clients    ;
+    client->conn      = conn             ;
+    client->stream    = mg_strdup(stream);
+    client->last_ping = mg_millis()      ;
+    client->next      = clients          ;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -122,6 +122,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
     mg_printf(
         conn,
         "HTTP/1.1 200 OK\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
         "Content-Type: text/event-stream\r\n"
         "Cache-Control: no-cache\r\n"
         "Connection: keep-alive\r\n"
@@ -201,7 +202,7 @@ static void redis_poll(struct mg_connection *redis_conn)
 
         /*------------------------------------------------------------------------------------------------------------*/
 
-        if(found == false) streams[n_streams++] = mg_strdup(client->stream);
+        if(found == false) streams[n_streams++] = client->stream;
 
         /*------------------------------------------------------------------------------------------------------------*/
     }
@@ -237,16 +238,9 @@ static void redis_poll(struct mg_connection *redis_conn)
             len += snprintf(cmd + len, sizeof(cmd) - len, "$1\r\n$\r\n");
         }
 
+        /*------------------------------------------------------------------------------------------------------------*/
+
         mg_send(redis_conn, cmd, len);
-
-        /*------------------------------------------------------------------------------------------------------------*/
-
-        for(int i = 0; i < n_streams; i++)
-        {
-            free(streams[i].buf);
-        }
-
-        /*------------------------------------------------------------------------------------------------------------*/
 
         redis_waiting = true;
 
@@ -439,7 +433,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             {
                 if(mg_strcmp(client->stream, stream_name) == 0)
                 {
-                    mg_printf(client->conn, "}\n");
+                    mg_printf(client->conn, "}\n\n");
 
                     client->last_ping = mg_millis();
                 }
@@ -484,14 +478,14 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         {
             if(mg_strcasecmp(hm->method, mg_str("GET")) == 0)
             {
-                add_client(conn, mg_strdup(mg_str_n(
+                add_client(conn, mg_str_n(
                     hm->uri.buf + 9,
                     hm->uri.len - 9
-                )));
+                ));
             }
             else
             {
-                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
             }
         }
 
@@ -502,13 +496,13 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/stream-timeout"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", STREAM_TIMEOUT_MS = mg_str_to_uint(hm->body, STREAM_TIMEOUT_MS));
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", STREAM_TIMEOUT_MS = mg_str_to_uint(hm->body, STREAM_TIMEOUT_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", /*------*/ STREAM_TIMEOUT_MS /*------*/);
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ STREAM_TIMEOUT_MS /*------*/);
             }
             else {
-                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
             }
         }
 
@@ -519,13 +513,13 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/keepalive"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", KEEPALIVE_MS = mg_str_to_uint(hm->body, KEEPALIVE_MS));
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", KEEPALIVE_MS = mg_str_to_uint(hm->body, KEEPALIVE_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", /*------*/ KEEPALIVE_MS /*------*/);
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ KEEPALIVE_MS /*------*/);
             }
             else {
-                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
             }
         }
 
@@ -536,13 +530,13 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/poll"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", POLL_MS = mg_str_to_uint(hm->body, POLL_MS));
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", POLL_MS = mg_str_to_uint(hm->body, POLL_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", /*------*/ POLL_MS /*------*/);
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ POLL_MS /*------*/);
             }
             else {
-                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
             }
         }
 
@@ -552,7 +546,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
         else
         {
-            mg_http_reply(conn, 404, "Content-Type: text/plain\r\n",
+            mg_http_reply(conn, 404, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n",
                 "/streams/<stream> [GET]\n"
                 "/config/stream-timeout [GET, POST]\n"
                 "/config/keepalive [GET, POST]\n"
