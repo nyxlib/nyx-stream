@@ -560,6 +560,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 "/config/stream-timeout [GET, POST]\n"
                 "/config/keepalive [GET, POST]\n"
                 "/config/poll [GET, POST]\n"
+                "/stop [GET, POST]\n"
             );
         }
 
