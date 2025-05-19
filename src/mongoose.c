@@ -1,4 +1,3 @@
-#if !defined(ARDUINO)
 // Copyright (c) 2004-2013 Sergey Lyubka
 // Copyright (c) 2013-2025 Cesanta Software Limited
 // All rights reserved
@@ -22583,5 +22582,3 @@ struct mg_tcpip_driver mg_tcpip_driver_xmc7 = {mg_tcpip_driver_xmc7_init,
                                                mg_tcpip_driver_xmc7_tx, NULL,
                                                mg_tcpip_driver_xmc7_up};
 #endif
-
-#endif // ARDUINO
