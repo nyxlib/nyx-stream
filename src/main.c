@@ -5,7 +5,6 @@
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-#include <errno.h>
 #include <getopt.h>
 #include <signal.h>
 
@@ -21,11 +20,11 @@ static const char *BIND_URL = "http://0.0.0.0:8379";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static int STREAM_TIMEOUT_MS = 5000;
+static uint32_t STREAM_TIMEOUT_MS = 5000;
 
-static int KEEPALIVE_MS = 10000;
+static uint32_t KEEPALIVE_MS = 10000;
 
-static int POLL_MS = 10;
+static uint32_t POLL_MS = 10;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* HELPERS                                                                                                            */
@@ -45,27 +44,11 @@ static size_t intlen(size_t n)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static int mg_str_to_int(struct mg_str s, int default_value)
+static uint32_t mg_str_to_uint(struct mg_str s, uint32_t default_value)
 {
-    /*----------------------------------------------------------------------------------------------------------------*/
+    uint32_t value;
 
-    char buf[32];
-
-    size_t len = s.len < sizeof(buf) - 1 ? s.len : sizeof(buf) - 1;
-
-    ((char *) memcpy(buf, s.buf, len))[len] = '\0';
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    errno = 0;
-
-    char *end_ptr = NULL;
-
-    long value = strtol(buf, &end_ptr, 10);
-
-    return (errno == ERANGE || end_ptr == buf || *end_ptr != '\0') ? default_value : (int) value;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
+    return s.buf == NULL || s.len == 0x00 || mg_str_to_num(s, 0, &value, sizeof(value)) == false ? default_value : value;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -239,7 +222,7 @@ static void redis_poll(struct mg_connection *redis_conn)
             "*%d\r\n"
             "$5\r\nXREAD\r\n"
             "$5\r\nBLOCK\r\n"
-            "$%zu\r\n%d\r\n"
+            "$%zu\r\n%u\r\n"
             "$7\r\nSTREAMS\r\n",
             4 + n_streams * 2,
             intlen(STREAM_TIMEOUT_MS),
@@ -384,11 +367,11 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            int n_fields = mg_str_to_int(stream_size, 0) / 2;
+            uint32_t n_fields = mg_str_to_uint(stream_size, 0) / 2;
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            for(int i = 0; i < n_fields; i++)
+            for(uint32_t i = 0; i < n_fields; i++)
             {
                 /*----------------------------------------------------------------------------------------------------*/
                 /* EXTRACT FIELD KEY                                                                                  */
@@ -519,10 +502,10 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/stream-timeout"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", STREAM_TIMEOUT_MS = mg_str_to_int(hm->body, STREAM_TIMEOUT_MS));
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", STREAM_TIMEOUT_MS = mg_str_to_uint(hm->body, STREAM_TIMEOUT_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", /*------*/ STREAM_TIMEOUT_MS /*------*/);
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", /*------*/ STREAM_TIMEOUT_MS /*------*/);
             }
             else {
                 mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
@@ -536,10 +519,10 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/keepalive"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", KEEPALIVE_MS = mg_str_to_int(hm->body, KEEPALIVE_MS));
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", KEEPALIVE_MS = mg_str_to_uint(hm->body, KEEPALIVE_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", /*------*/ KEEPALIVE_MS /*------*/);
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", /*------*/ KEEPALIVE_MS /*------*/);
             }
             else {
                 mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
@@ -553,10 +536,10 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/poll"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", POLL_MS = mg_str_to_int(hm->body, POLL_MS));
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", POLL_MS = mg_str_to_uint(hm->body, POLL_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
-                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", /*------*/ POLL_MS /*------*/);
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%u\n", /*------*/ POLL_MS /*------*/);
             }
             else {
                 mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
@@ -644,9 +627,9 @@ static void parse_args(int argc, char **argv)
             case 'r': REDIS_URL  = optarg; break;
             case 'b': BIND_URL = optarg; break;
 
-            case 's': STREAM_TIMEOUT_MS = mg_str_to_int(mg_str(optarg), STREAM_TIMEOUT_MS); break;
-            case 'k': KEEPALIVE_MS = mg_str_to_int(mg_str(optarg), KEEPALIVE_MS); break;
-            case 'p': POLL_MS = mg_str_to_int(mg_str(optarg), POLL_MS); break;
+            case 's': STREAM_TIMEOUT_MS = mg_str_to_uint(mg_str(optarg), STREAM_TIMEOUT_MS); break;
+            case 'k': KEEPALIVE_MS = mg_str_to_uint(mg_str(optarg), KEEPALIVE_MS); break;
+            case 'p': POLL_MS = mg_str_to_uint(mg_str(optarg), POLL_MS); break;
 
             case 'h':
             default:
@@ -710,15 +693,18 @@ int main(int argc, char **argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    MG_INFO(("Starting NyxStream on %s, Redis at %s", BIND_URL, REDIS_URL));
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     while(s_signo == 0)
     {
-        mg_mgr_poll(&mgr, POLL_MS);
+        mg_mgr_poll(&mgr, (int) POLL_MS);
 
         redis_poll(redis_conn);
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
-
 __bye:
     mg_mgr_free(&mgr);
 
