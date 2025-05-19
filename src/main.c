@@ -96,7 +96,7 @@ static bool volatile redis_waiting = false;
 
 static void add_client(struct mg_connection *conn, struct mg_str stream)
 {
-   /*----------------------------------------------------------------------------------------------------------------*/
+   /*-----------------------------------------------------------------------------------------------------------------*/
 
     MG_INFO(("Openning stream `%.*s`...", (int) stream.len, stream.buf));
 
@@ -107,11 +107,11 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
     client->conn      = conn       ;
     client->stream    = stream     ;
     client->last_ping = mg_millis();
-	client->next      = clients    ;
+    client->next      = clients    ;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-	conn->fn_data = clients = client;
+    conn->fn_data = clients = client;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
