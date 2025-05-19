@@ -48,7 +48,12 @@ static uint32_t mg_str_to_uint32(struct mg_str s, uint32_t default_value)
 {
     uint32_t value;
 
-    return s.buf == NULL || s.len == 0x00 || mg_str_to_num(s, 10, &value, sizeof(value)) == false ? default_value : value;
+    return s.buf == NULL
+           ||
+           s.len == 0x00
+           ||
+           mg_str_to_num(s, 10, &value, sizeof(value)) == false ? default_value : value
+    ;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
