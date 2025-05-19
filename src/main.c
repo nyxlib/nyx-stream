@@ -48,7 +48,7 @@ static uint32_t mg_str_to_uint(struct mg_str s, uint32_t default_value)
 {
     uint32_t value;
 
-    return s.buf == NULL || s.len == 0x00 || mg_str_to_num(s, 0, &value, sizeof(value)) == false ? default_value : value;
+    return s.buf == NULL || s.len == 0x00 || mg_str_to_num(s, 10, &value, sizeof(value)) == false ? default_value : value;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -637,9 +637,9 @@ static void parse_args(int argc, char **argv)
                 printf("  --redis <url>          Redis connection string (default: %s)\n", REDIS_URL);
                 printf("  --bind <url>           HTTP connection string (default: %s)\n", BIND_URL);
                 printf("\n");
-                printf("  --stream-timeout <ms>  Stream block timeout (default: %d ms)\n", STREAM_TIMEOUT_MS);
-                printf("  --keepalive <ms>       Keepalive interval (default: %d ms)\n", KEEPALIVE_MS);
-                printf("  --poll <ms>            Poll interval (default: %d ms)\n", POLL_MS);
+                printf("  --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
+                printf("  --keepalive <ms>       Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
+                printf("  --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
 
                 exit(0);
         }
