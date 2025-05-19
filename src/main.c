@@ -142,6 +142,7 @@ static void rm_client(struct mg_connection *conn)
             free(dead->stream.buf);
 
             free(dead);
+
             break;
         }
     }
