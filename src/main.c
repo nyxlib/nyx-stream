@@ -98,7 +98,15 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 {
    /*-----------------------------------------------------------------------------------------------------------------*/
 
-    MG_INFO(("Openning stream `%.*s`...", (int) stream.len, stream.buf));
+    char addr[INET6_ADDRSTRLEN] = {0};
+
+    if(conn->rem.is_ip6) {
+      inet_ntop(AF_INET6, &conn->rem.ip, addr, sizeof(addr));
+    } else {
+      inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
+    }
+
+    MG_INFO(("Openning stream `%.*s` (ip `%s`)", (int) stream.len, stream.buf, addr));
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -135,7 +143,19 @@ static void rm_client(struct mg_connection *conn)
     {
         if((*pp)->conn == conn)
         {
-            MG_INFO(("Closing stream `%.*s`...", (int) (*pp)->stream.len, (*pp)->stream.buf));
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            char addr[INET6_ADDRSTRLEN] = {0};
+
+            if(conn->rem.is_ip6) {
+              inet_ntop(AF_INET6, &conn->rem.ip, addr, sizeof(addr));
+            } else {
+              inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
+            }
+
+            MG_INFO(("Closing stream `%.*s` (ip `%s`)", (int) (*pp)->stream.len, (*pp)->stream.buf, addr));
+
+            /*--------------------------------------------------------------------------------------------------------*/
 
             client_t *dead = *pp; *pp = (*pp)->next;
 
@@ -144,6 +164,8 @@ static void rm_client(struct mg_connection *conn)
             free(dead);
 
             break;
+
+            /*--------------------------------------------------------------------------------------------------------*/
         }
     }
 }
