@@ -19,13 +19,15 @@ def download_mongoose():
 
         ################################################################################################################
 
-        if response.status_code != 200:
+        if response.status_code == 200:
+
+            with open(f'src/{filename}', 'wt') as f:
+
+                f.write(response.content.decode('UTF-8'))
+
+        else:
 
             raise IOError(f'Cannot download `{filename}`')
-
-        with open(f'src/{filename}', 'wt') as f:
-
-            f.write(response.content.decode('UTF-8'))
 
 ########################################################################################################################
 
