@@ -106,7 +106,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
       inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
     }
 
-    MG_INFO(("Openning stream `%.*s` (ip `%s`)", (int) stream.len, stream.buf, addr));
+    MG_INFO(("Opening stream `%.*s` (ip `%s`)", (int) stream.len, stream.buf, addr));
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -258,7 +258,7 @@ static void redis_poll(struct mg_connection *redis_conn)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static void redis_handler(struct mg_connection *conn, int event, void *event_data)
+static void redis_handler(struct mg_connection *conn, int event, __attribute__ ((unused)) void *event_data)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
     /* MG_EV_CONNECT                                                                                                  */
@@ -391,7 +391,7 @@ static void redis_handler(struct mg_connection *conn, int event, void *event_dat
 
                 /*----------------------------------------------------------------------------------------------------*/
 
-                int key_len = (long) key_end - (long) key_start;
+                int key_len = (int) ((long) key_end - (long) key_start);
 
                 /*----------------------------------------------------------------------------------------------------*/
                 /* EXTRACT FIELD VAL                                                                                  */
@@ -411,7 +411,7 @@ static void redis_handler(struct mg_connection *conn, int event, void *event_dat
 
                 /*----------------------------------------------------------------------------------------------------*/
 
-                int val_len = (long) val_end - (long) val_start;
+                int val_len = (int) ((long) val_end - (long) val_start);
 
                 /*----------------------------------------------------------------------------------------------------*/
                 /* EMIT JSON KEY-VAL ENTRY                                                                            */
