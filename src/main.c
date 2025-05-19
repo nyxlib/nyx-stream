@@ -44,7 +44,7 @@ static size_t intlen(size_t n)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static uint32_t mg_str_to_uint(struct mg_str s, uint32_t default_value)
+static uint32_t mg_str_to_uint32(struct mg_str s, uint32_t default_value)
 {
     uint32_t value;
 
@@ -361,7 +361,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            uint32_t n_fields = mg_str_to_uint(stream_size, 0) / 2;
+            uint32_t n_fields = mg_str_to_uint32(stream_size, 0) / 2;
 
             /*--------------------------------------------------------------------------------------------------------*/
 
@@ -496,7 +496,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/stream-timeout"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", STREAM_TIMEOUT_MS = mg_str_to_uint(hm->body, STREAM_TIMEOUT_MS));
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", STREAM_TIMEOUT_MS = mg_str_to_uint32(hm->body, STREAM_TIMEOUT_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
                 mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ STREAM_TIMEOUT_MS /*------*/);
@@ -513,7 +513,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/keepalive"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", KEEPALIVE_MS = mg_str_to_uint(hm->body, KEEPALIVE_MS));
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", KEEPALIVE_MS = mg_str_to_uint32(hm->body, KEEPALIVE_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
                 mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ KEEPALIVE_MS /*------*/);
@@ -530,7 +530,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         else if(mg_match(hm->uri, mg_str("/config/poll"), NULL))
         {
             /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
-                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", POLL_MS = mg_str_to_uint(hm->body, POLL_MS));
+                mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", POLL_MS = mg_str_to_uint32(hm->body, POLL_MS));
             }
             else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
                 mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ POLL_MS /*------*/);
@@ -631,9 +631,9 @@ static void parse_args(int argc, char **argv)
             case 'r': REDIS_URL  = optarg; break;
             case 'b': BIND_URL = optarg; break;
 
-            case 's': STREAM_TIMEOUT_MS = mg_str_to_uint(mg_str(optarg), STREAM_TIMEOUT_MS); break;
-            case 'k': KEEPALIVE_MS = mg_str_to_uint(mg_str(optarg), KEEPALIVE_MS); break;
-            case 'p': POLL_MS = mg_str_to_uint(mg_str(optarg), POLL_MS); break;
+            case 's': STREAM_TIMEOUT_MS = mg_str_to_uint32(mg_str(optarg), STREAM_TIMEOUT_MS); break;
+            case 'k': KEEPALIVE_MS = mg_str_to_uint32(mg_str(optarg), KEEPALIVE_MS); break;
+            case 'p': POLL_MS = mg_str_to_uint32(mg_str(optarg), POLL_MS); break;
 
             case 'h':
             default:
