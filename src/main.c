@@ -460,10 +460,68 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
         /**/ if(mg_match(hm->uri, mg_str("/streams/*"), NULL))
         {
-            add_client(conn, mg_strdup(mg_str_n(
-                hm->uri.buf + 9,
-                hm->uri.len - 9
-            )));
+            if(mg_strcasecmp(hm->method, mg_str("GET")) == 0)
+            {
+                add_client(conn, mg_strdup(mg_str_n(
+                    hm->uri.buf + 9,
+                    hm->uri.len - 9
+                )));
+            }
+            else
+            {
+                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+            }
+        }
+
+        /*------------------------------------------------------------------------------------------------------------*/
+        /* ROUTE /config/stream-timeout                                                                               */
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        else if(mg_match(hm->uri, mg_str("/config/stream-timeout"), NULL))
+        {
+            /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", POLL_MS = mg_str_to_int(hm->body));
+            }
+            else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", /*------*/ POLL_MS /*------*/);
+            }
+            else {
+                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+            }
+        }
+
+        /*------------------------------------------------------------------------------------------------------------*/
+        /* ROUTE /config/keepalive                                                                                    */
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        else if(mg_match(hm->uri, mg_str("/config/keepalive"), NULL))
+        {
+            /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", KEEPALIVE_MS = mg_str_to_int(hm->body));
+            }
+            else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", /*------*/ KEEPALIVE_MS /*------*/);
+            }
+            else {
+                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+            }
+        }
+
+        /*------------------------------------------------------------------------------------------------------------*/
+        /* ROUTE /config/poll                                                                                         */
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        else if(mg_match(hm->uri, mg_str("/config/poll"), NULL))
+        {
+            /**/ if(mg_strcasecmp(hm->method, mg_str("POST")) == 0) {
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", POLL_MS = mg_str_to_int(hm->body));
+            }
+            else if(mg_strcasecmp(hm->method, mg_str("GET")) == 0) {
+                mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%d\n", /*------*/ POLL_MS /*------*/);
+            }
+            else {
+                mg_http_reply(conn, 405, "Content-Type: text/plain\r\n", "Method Not Allowed\n");
+            }
         }
 
         /*------------------------------------------------------------------------------------------------------------*/
@@ -472,7 +530,12 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
         else
         {
-            mg_http_reply(conn, 404, "Content-Type: text/plain\r\n", "Usage: /streams/<stream>\n");
+            mg_http_reply(conn, 404, "Content-Type: text/plain\r\n",
+                "/streams/<stream> [GET]\n"
+                "/config/stream-timeout [GET, POST]\n"
+                "/config/keepalive [GET, POST]\n"
+                "/config/poll [GET, POST]\n"
+            );
         }
 
         /*------------------------------------------------------------------------------------------------------------*/
