@@ -721,10 +721,10 @@ static void parse_args(int argc, char **argv)
         {"bind",           required_argument, 0, 'b'},
         {"redis",          required_argument, 0, 'r'},
         {"username",       optional_argument, 0, 'u'},
-        {"password",       optional_argument, 0, 'w'},
+        {"password",       optional_argument, 0, 'p'},
         {"stream-timeout", required_argument, 0, 's'},
         {"keepalive",      required_argument, 0, 'k'},
-        {"poll",           required_argument, 0, 'p'},
+        {"poll",           required_argument, 0, 'l'},
         {"help",           no_argument,       0, 'h'},
         {0, 0, 0, 0},
     };
@@ -750,11 +750,11 @@ static void parse_args(int argc, char **argv)
             case 'r': REDIS_URL = optarg; break;
 
             case 'u': REDIS_USERNAME = optarg; break;
-            case 'w': REDIS_PASSWORD = optarg; break;
+            case 'p': REDIS_PASSWORD = optarg; break;
 
             case 's': STREAM_TIMEOUT_MS = mg_str_to_uint32(mg_str(optarg), STREAM_TIMEOUT_MS); break;
             case 'k': KEEPALIVE_MS = mg_str_to_uint32(mg_str(optarg), KEEPALIVE_MS); break;
-            case 'p': POLL_MS = mg_str_to_uint32(mg_str(optarg), POLL_MS); break;
+            case 'l': POLL_MS = mg_str_to_uint32(mg_str(optarg), POLL_MS); break;
 
             case 'h':
             default:
@@ -763,11 +763,11 @@ static void parse_args(int argc, char **argv)
                 printf("  -r --redis <url>          Redis connection string (default: `%s`)\n", REDIS_URL);
                 printf("\n");
                 printf("  -u --username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
-                printf("  -w --password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
+                printf("  -p --password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
                 printf("\n");
                 printf("  -s --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
                 printf("  -k --keepalive <ms>       Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
-                printf("  -p --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
+                printf("  -l --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
 
                 exit(0);
         }
