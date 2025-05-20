@@ -444,6 +444,10 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
                 if(key_len > 0 && (key_start[0] == '@' || key_start[0] == '#'))
                 {
+                    /*------------------------------------------------------------------------------------------------*/
+                    /* STRING VALUES AND BASE64-ENCODED ARRAYS                                                        */
+                    /*------------------------------------------------------------------------------------------------*/
+
                     for(client_t *client = clients; client != NULL; client = client->next)
                     {
                         if(mg_strcmp(client->stream, stream_name) == 0)
@@ -456,9 +460,15 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                             }
                         }
                     }
+
+                    /*------------------------------------------------------------------------------------------------*/
                 }
                 else
                 {
+                    /*------------------------------------------------------------------------------------------------*/
+                    /* OTHER VALUES                                                                                   */
+                    /*------------------------------------------------------------------------------------------------*/
+
                     for(client_t *client = clients; client != NULL; client = client->next)
                     {
                         if(mg_strcmp(client->stream, stream_name) == 0)
@@ -471,6 +481,8 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                             }
                         }
                     }
+
+                    /*------------------------------------------------------------------------------------------------*/
                 }
 
                 /*----------------------------------------------------------------------------------------------------*/
