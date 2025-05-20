@@ -20,6 +20,11 @@ static const char *BIND_URL = "http://0.0.0.0:8379";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+static const char *REDIS_USERNAME = "";
+static const char *REDIS_PASSWORD = "";
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 static uint32_t STREAM_TIMEOUT_MS = 5000;
 
 static uint32_t KEEPALIVE_MS = 10000;
@@ -192,6 +197,40 @@ static void rm_client(struct mg_connection *conn)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+void redis_auth()
+{
+    if(REDIS_PASSWORD[0] != '\0')
+    {
+        if(REDIS_USERNAME[0] != '\0')
+        {
+            mg_printf(
+                redis_conn,
+                "*3\r\n"
+                "$4\r\nAUTH\r\n"
+                "$%zu\r\n%s\r\n"
+                "$%zu\r\n%s\r\n",
+                strlen(REDIS_USERNAME),
+                /*--*/(REDIS_USERNAME),
+                strlen(REDIS_PASSWORD),
+                /*--*/(REDIS_PASSWORD)
+            );
+        }
+        else
+        {
+            mg_printf(
+                redis_conn,
+                "*2\r\n"
+                "$4\r\nAUTH\r\n"
+                "$%zu\r\n%s\r\n",
+                strlen(REDIS_PASSWORD),
+                /*--*/(REDIS_PASSWORD)
+            );
+        }
+    }
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 static void redis_poll()
 {
     if(redis_conn == NULL || redis_waiting)
@@ -278,10 +317,10 @@ static void redis_poll()
 static void redis_handler(struct mg_connection *conn, int event, __attribute__ ((unused)) void *event_data)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
-    /* MG_EV_CONNECT                                                                                                  */
+    /* MG_EV_OPEN                                                                                                  */
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    /**/ if(event == MG_EV_CONNECT)
+    /**/ if(event == MG_EV_OPEN)
     {
         MG_INFO(("%lu OPEN", conn->id));
 
@@ -301,6 +340,15 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
         redis_waiting = true;
 
         redis_conn = NULL;
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+    /* MG_EV_CONNECT                                                                                                  */
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    else if(event == MG_EV_CONNECT)
+    {
+        redis_auth();
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -670,8 +718,10 @@ static void parse_args(int argc, char **argv)
     /*----------------------------------------------------------------------------------------------------------------*/
 
     static struct option long_options[] = {
-        {"redis",          required_argument, 0, 'r'},
         {"bind",           required_argument, 0, 'b'},
+        {"redis",          required_argument, 0, 'r'},
+        {"username",       optional_argument, 0, 'u'},
+        {"password",       optional_argument, 0, 'w'},
         {"stream-timeout", required_argument, 0, 's'},
         {"keepalive",      required_argument, 0, 'k'},
         {"poll",           required_argument, 0, 'p'},
@@ -696,8 +746,11 @@ static void parse_args(int argc, char **argv)
 
         switch(opt)
         {
-            case 'r': REDIS_URL  = optarg; break;
             case 'b': BIND_URL = optarg; break;
+            case 'r': REDIS_URL = optarg; break;
+
+            case 'u': REDIS_USERNAME = optarg; break;
+            case 'w': REDIS_PASSWORD = optarg; break;
 
             case 's': STREAM_TIMEOUT_MS = mg_str_to_uint32(mg_str(optarg), STREAM_TIMEOUT_MS); break;
             case 'k': KEEPALIVE_MS = mg_str_to_uint32(mg_str(optarg), KEEPALIVE_MS); break;
@@ -706,12 +759,15 @@ static void parse_args(int argc, char **argv)
             case 'h':
             default:
                 printf("Usage: %s [options]\n", argv[0]);
-                printf("  --redis <url>          Redis connection string (default: %s)\n", REDIS_URL);
-                printf("  --bind <url>           HTTP connection string (default: %s)\n", BIND_URL);
+                printf("  -b --bind <url>           HTTP connection string (default: %s)\n", BIND_URL);
+                printf("  -r --redis <url>          Redis connection string (default: %s)\n", REDIS_URL);
                 printf("\n");
-                printf("  --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
-                printf("  --keepalive <ms>       Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
-                printf("  --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
+                printf("  -u --username <password>  Redis username (default: %s)\n", REDIS_USERNAME);
+                printf("  -w --password <password>  Redis password (default: %s)\n", REDIS_PASSWORD);
+                printf("\n");
+                printf("  -s --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
+                printf("  -k --keepalive <ms>       Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
+                printf("  -p --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
 
                 exit(0);
         }
