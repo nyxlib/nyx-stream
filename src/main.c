@@ -285,7 +285,9 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     {
         MG_INFO(("%lu OPEN", conn->id));
 
-        /* Redis is up */
+        redis_waiting = false;
+
+        redis_conn = conn;
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -295,6 +297,8 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     else if(event == MG_EV_CLOSE)
     {
         MG_INFO(("%lu CLOSE", conn->id));
+
+        redis_waiting = false;
 
         redis_conn = NULL;
     }
