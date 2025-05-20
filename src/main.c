@@ -704,7 +704,7 @@ static void retry_timer_handler(void *arg)
 
         if(http_conn == NULL)
         {
-            MG_INFO(("Cannot create HTTP listener!"));
+            MG_ERROR(("Cannot create HTTP listener!"));
         }
     }
 
@@ -716,7 +716,7 @@ static void retry_timer_handler(void *arg)
 
         if(redis_conn == NULL)
         {
-            MG_INFO(("Cannot open Redis connection!"));
+            MG_ERROR(("Cannot open Redis connection!"));
         }
     }
 
