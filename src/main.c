@@ -248,9 +248,9 @@ static void redis_poll()
     /* SELECT STREAMS                                                                                                 */
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    int sizes = 0;
+    size_t sizes = 0;
 
-    int n_streams = 0;
+    size_t n_streams = 0;
 
     struct mg_str streams[64];
 
@@ -285,7 +285,7 @@ static void redis_poll()
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
-        int exp_size = 128 + sizes;
+        size_t exp_size = 128 + sizes;
 
         char *cmd_buff = (char *) malloc(exp_size);
 
@@ -299,7 +299,7 @@ static void redis_poll()
         int cmd_size = snprintf(
             cmd_buff,
             exp_size,
-            "*%d\r\n"
+            "*%zu\r\n"
             "$5\r\nXREAD\r\n"
             "$5\r\nBLOCK\r\n"
             "$%zu\r\n%u\r\n"
@@ -309,11 +309,11 @@ static void redis_poll()
             /*--*/(STREAM_TIMEOUT_MS)
         );
 
-        for(int i = 0; i < n_streams; i++) {
+        for(size_t i = 0; i < n_streams; i++) {
             cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, streams[i].buf);
         }
 
-        for(int i = 0; i < n_streams; i++) {
+        for(size_t i = 0; i < n_streams; i++) {
             cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$1\r\n$\r\n");
         }
 
