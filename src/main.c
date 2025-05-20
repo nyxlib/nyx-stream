@@ -101,13 +101,6 @@ static struct mg_connection *redis_conn = NULL;
 
 static void add_client(struct mg_connection *conn, struct mg_str stream)
 {
-    if(stream.len == 0)
-    {
-        mg_http_reply(conn, 400, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Missing stream name\n");
-
-        return;
-    }
-
    /*-----------------------------------------------------------------------------------------------------------------*/
 
     char addr[INET6_ADDRSTRLEN] = {0};
@@ -512,14 +505,21 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         {
             if(mg_strcasecmp(hm->method, mg_str("GET")) == 0)
             {
-                add_client(conn, mg_str_n(
-                    hm->uri.buf + 9,
-                    hm->uri.len - 9
-                ));
+                if(hm->uri.len > 9)
+                {
+                    add_client(conn, mg_str_n(
+                        hm->uri.buf + 9,
+                        hm->uri.len - 9
+                    ));
+                }
+                else
+                {
+                    mg_http_reply(conn, 400, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Missing stream name\n");
+                }
             }
             else
             {
-                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method not allowed\n");
             }
         }
 
@@ -536,7 +536,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ STREAM_TIMEOUT_MS /*------*/);
             }
             else {
-                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method not allowed\n");
             }
         }
 
@@ -553,7 +553,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ KEEPALIVE_MS /*------*/);
             }
             else {
-                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method not allowed\n");
             }
         }
 
@@ -570,7 +570,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "%u\n", /*------*/ POLL_MS /*------*/);
             }
             else {
-                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method Not Allowed\n");
+                mg_http_reply(conn, 405, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Method not allowed\n");
             }
         }
 
