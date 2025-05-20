@@ -93,6 +93,10 @@ static client_t *clients = NULL;
 
 static bool volatile redis_waiting = false;
 
+static struct mg_connection *http_conn = NULL;
+
+static struct mg_connection *redis_conn = NULL;
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 static void add_client(struct mg_connection *conn, struct mg_str stream)
@@ -266,6 +270,8 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     /**/ if(event == MG_EV_CONNECT)
     {
         MG_INFO(("%lu OPEN", conn->id));
+
+        /* Redis is up */
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -275,6 +281,8 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     else if(event == MG_EV_CLOSE)
     {
         MG_INFO(("%lu CLOSE", conn->id));
+
+        redis_conn = NULL;
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -661,6 +669,35 @@ static void parse_args(int argc, char **argv)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+static void retry_timer_handler(void *arg)
+{
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    struct mg_mgr *mgr = (struct mg_mgr *) arg;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    http_conn = mg_http_listen(mgr, BIND_URL, http_handler, NULL);
+
+    if(http_conn == NULL)
+    {
+        MG_INFO(("Cannot create HTTP listener!"));
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    redis_conn = mg_connect(mgr, REDIS_URL, redis_handler, NULL);
+
+    if(redis_conn == NULL)
+    {
+        MG_INFO(("Cannot open Redis connection!"));
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 int main(int argc, char **argv)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -674,35 +711,17 @@ int main(int argc, char **argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    MG_INFO(("Starting NyxStream on %s, Redis at %s...", BIND_URL, REDIS_URL));
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     struct mg_mgr mgr;
 
     mg_mgr_init(&mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    struct mg_connection *redis_conn = mg_connect(&mgr, REDIS_URL, redis_handler, NULL);
-
-    if(redis_conn == NULL)
-    {
-        MG_INFO(("Cannot open Redis connection!"));
-
-        goto __bye;
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    struct mg_connection *http_conn = mg_http_listen(&mgr, BIND_URL, http_handler, NULL);
-
-    if(http_conn == NULL)
-    {
-        MG_INFO(("Cannot create HTTP listener!"));
-
-        goto __bye;
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    MG_INFO(("Starting NyxStream on %s, Redis at %s...", BIND_URL, REDIS_URL));
+    mg_timer_add(&mgr, 1000, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -714,7 +733,7 @@ int main(int argc, char **argv)
     } while(s_signo == 0);
 
     /*----------------------------------------------------------------------------------------------------------------*/
-__bye:
+
     mg_mgr_free(&mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
