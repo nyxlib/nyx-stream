@@ -442,7 +442,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                 /* EMIT JSON KEY-VAL ENTRY                                                                            */
                 /*----------------------------------------------------------------------------------------------------*/
 
-                if(key_len > 0 && (key_start[0] == '@' || key_start[0] == '#'))
+                /**/ if(key_len > 1 && (key_start[0] == '@' || key_start[0] == '#'))
                 {
                     /*------------------------------------------------------------------------------------------------*/
                     /* STRING VALUES AND BASE64-ENCODED ARRAYS                                                        */
@@ -463,7 +463,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
                     /*------------------------------------------------------------------------------------------------*/
                 }
-                else
+                else if(key_len > 0)
                 {
                     /*------------------------------------------------------------------------------------------------*/
                     /* OTHER VALUES                                                                                   */
