@@ -762,7 +762,7 @@ static void parse_args(int argc, char **argv)
                 printf("  -b --bind <url>           HTTP connection string (default: %s)\n", BIND_URL);
                 printf("  -r --redis <url>          Redis connection string (default: %s)\n", REDIS_URL);
                 printf("\n");
-                printf("  -u --username <password>  Redis username (default: %s)\n", REDIS_USERNAME);
+                printf("  -u --username <username>  Redis username (default: %s)\n", REDIS_USERNAME);
                 printf("  -w --password <password>  Redis password (default: %s)\n", REDIS_PASSWORD);
                 printf("\n");
                 printf("  -s --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
