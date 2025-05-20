@@ -260,7 +260,7 @@ static void redis_poll()
 
         bool found = false;
 
-        for(int i = 0; i < n_streams; i++)
+        for(size_t i = 0; i < n_streams; i++)
         {
             if(mg_strcmp(client->stream, streams[i]) == 0)
             {
