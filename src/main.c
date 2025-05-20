@@ -442,15 +442,33 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                 /* EMIT JSON KEY-VAL ENTRY                                                                            */
                 /*----------------------------------------------------------------------------------------------------*/
 
-                for(client_t *client = clients; client != NULL; client = client->next)
+                if(key_len > 0 && (key_start[0] == '@' || key_start[0] == '#'))
                 {
-                    if(mg_strcmp(client->stream, stream_name) == 0)
+                    for(client_t *client = clients; client != NULL; client = client->next)
                     {
-                        if(i == n_fields - 1) {
-                            mg_printf(client->conn, "\"%.*s\":\"%.*s\"", (int) key_len, key_start, (int) val_len, val_start);
+                        if(mg_strcmp(client->stream, stream_name) == 0)
+                        {
+                            if(i == n_fields - 1) {
+                                mg_printf(client->conn, "\"%.*s\":\"%.*s\"", (int) key_len, key_start, (int) val_len, val_start);
+                            }
+                            else {
+                                mg_printf(client->conn, "\"%.*s\":\"%.*s\",", (int) key_len, key_start, (int) val_len, val_start);
+                            }
                         }
-                        else {
-                            mg_printf(client->conn, "\"%.*s\":\"%.*s\",", (int) key_len, key_start, (int) val_len, val_start);
+                    }
+                }
+                else
+                {
+                    for(client_t *client = clients; client != NULL; client = client->next)
+                    {
+                        if(mg_strcmp(client->stream, stream_name) == 0)
+                        {
+                            if(i == n_fields - 1) {
+                                mg_printf(client->conn, "\"%.*s\":%.*s", (int) key_len, key_start, (int) val_len, val_start);
+                            }
+                            else {
+                                mg_printf(client->conn, "\"%.*s\":%.*s,", (int) key_len, key_start, (int) val_len, val_start);
+                            }
                         }
                     }
                 }
