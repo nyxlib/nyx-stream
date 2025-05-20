@@ -759,11 +759,11 @@ static void parse_args(int argc, char **argv)
             case 'h':
             default:
                 printf("Usage: %s [options]\n", argv[0]);
-                printf("  -b --bind <url>           HTTP connection string (default: %s)\n", BIND_URL);
-                printf("  -r --redis <url>          Redis connection string (default: %s)\n", REDIS_URL);
+                printf("  -b --bind <url>           HTTP connection string (default: `%s`)\n", BIND_URL);
+                printf("  -r --redis <url>          Redis connection string (default: `%s`)\n", REDIS_URL);
                 printf("\n");
-                printf("  -u --username <username>  Redis username (default: %s)\n", REDIS_USERNAME);
-                printf("  -w --password <password>  Redis password (default: %s)\n", REDIS_PASSWORD);
+                printf("  -u --username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
+                printf("  -w --password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
                 printf("\n");
                 printf("  -s --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
                 printf("  -k --keepalive <ms>       Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
