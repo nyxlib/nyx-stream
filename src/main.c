@@ -133,7 +133,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    char *stream_buf = memcpy((char *) (client + 1), stream.buf, stream.len);
+    char *stream_buf = (char *) memcpy(client + 1, stream.buf, stream.len);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -242,6 +242,8 @@ static void redis_poll()
     /* SELECT STREAMS                                                                                                 */
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    int sizes = 0;
+
     int n_streams = 0;
 
     struct mg_str streams[64];
@@ -264,7 +266,7 @@ static void redis_poll()
 
         /*------------------------------------------------------------------------------------------------------------*/
 
-        if(found == false) streams[n_streams++] = client->stream;
+        if(found == false) sizes += 32 + (streams[n_streams++] = client->stream).len;
 
         /*------------------------------------------------------------------------------------------------------------*/
     }
@@ -277,11 +279,20 @@ static void redis_poll()
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
-        char cmd[8192];
+        int exp_size = 128 + sizes;
 
-        int len = snprintf(
-            /*--*/(cmd),
-            sizeof(cmd),
+        char *cmd_buff = (char *) malloc(exp_size);
+
+        if(cmd_buff == NULL)
+        {
+            return;
+        }
+
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        int cmd_size = snprintf(
+            cmd_buff,
+            exp_size,
             "*%d\r\n"
             "$5\r\nXREAD\r\n"
             "$5\r\nBLOCK\r\n"
@@ -293,18 +304,22 @@ static void redis_poll()
         );
 
         for(int i = 0; i < n_streams; i++) {
-            len += snprintf(cmd + len, sizeof(cmd) - len, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, streams[i].buf);
+            cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, streams[i].buf);
         }
 
         for(int i = 0; i < n_streams; i++) {
-            len += snprintf(cmd + len, sizeof(cmd) - len, "$1\r\n$\r\n");
+            cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$1\r\n$\r\n");
         }
 
         /*------------------------------------------------------------------------------------------------------------*/
 
-        mg_send(redis_conn, cmd, len);
+        mg_send(redis_conn, cmd_buff, cmd_size);
 
         redis_waiting = true;
+
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        free(cmd_buff);
 
         /*------------------------------------------------------------------------------------------------------------*/
     }
