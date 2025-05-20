@@ -101,6 +101,13 @@ static struct mg_connection *redis_conn = NULL;
 
 static void add_client(struct mg_connection *conn, struct mg_str stream)
 {
+    if(stream.len == 0)
+    {
+        mg_http_reply(conn, 400, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Missing stream name\n");
+
+        return;
+    }
+
    /*-----------------------------------------------------------------------------------------------------------------*/
 
     char addr[INET6_ADDRSTRLEN] = {0};
@@ -115,12 +122,28 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    client_t *client = (client_t *) malloc(sizeof(struct client_s));
+    client_t *client = (client_t *) malloc(sizeof(struct client_s) + stream.len);
 
-    client->conn      = conn             ;
-    client->stream    = mg_strdup(stream);
-    client->last_ping = mg_millis()      ;
-    client->next      = clients          ;
+    if(client == NULL)
+    {
+        mg_http_reply(conn, 400, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Out of memory\n");
+
+        MG_ERROR(("Out of memory!"));
+
+        return;
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    char *stream_buf = memcpy((char *) (client + 1), stream.buf, stream.len);
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    client->conn       = conn       ;
+    client->stream.buf = stream_buf ;
+    client->stream.len = stream.len ;
+    client->last_ping  = mg_millis();
+    client->next       = clients    ;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -165,8 +188,6 @@ static void rm_client(struct mg_connection *conn)
 
             client_t *dead = *pp; *pp = (*pp)->next;
 
-            free(dead->stream.buf);
-
             free(dead);
 
             break;
@@ -178,7 +199,7 @@ static void rm_client(struct mg_connection *conn)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static void redis_poll(struct mg_connection *redis_conn)
+static void redis_poll()
 {
     if(redis_conn == NULL || redis_waiting)
     {
@@ -677,20 +698,26 @@ static void retry_timer_handler(void *arg)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    http_conn = mg_http_listen(mgr, BIND_URL, http_handler, NULL);
-
     if(http_conn == NULL)
     {
-        MG_INFO(("Cannot create HTTP listener!"));
+        http_conn = mg_http_listen(mgr, BIND_URL, http_handler, NULL);
+
+        if(http_conn == NULL)
+        {
+            MG_INFO(("Cannot create HTTP listener!"));
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    redis_conn = mg_connect(mgr, REDIS_URL, redis_handler, NULL);
-
     if(redis_conn == NULL)
     {
-        MG_INFO(("Cannot open Redis connection!"));
+        redis_conn = mg_connect(mgr, REDIS_URL, redis_handler, NULL);
+
+        if(redis_conn == NULL)
+        {
+            MG_INFO(("Cannot open Redis connection!"));
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -725,12 +752,12 @@ int main(int argc, char **argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    do {
+    while(s_signo == 0)
+    {
         mg_mgr_poll(&mgr, (int) POLL_MS);
 
-        redis_poll(redis_conn);
-
-    } while(s_signo == 0);
+        redis_poll();
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
