@@ -735,7 +735,7 @@ static void parse_args(int argc, char **argv)
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
-        int opt = getopt_long(argc, argv, "r:b:s:k:p:h", long_options, NULL);
+        int opt = getopt_long(argc, argv, "b:r:u:p:s:k:l:h", long_options, NULL);
 
         if(opt < 0)
         {
