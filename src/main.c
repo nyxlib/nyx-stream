@@ -91,7 +91,7 @@ typedef struct client_s
 
 static client_t *clients = NULL;
 
-static bool volatile redis_waiting = false;
+static bool volatile redis_waiting = true;
 
 static struct mg_connection *http_conn = NULL;
 
@@ -298,7 +298,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     {
         MG_INFO(("%lu CLOSE", conn->id));
 
-        redis_waiting = false;
+        redis_waiting = true;
 
         redis_conn = NULL;
     }
