@@ -102,9 +102,9 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
     char addr[INET6_ADDRSTRLEN] = {0};
 
     if(conn->rem.is_ip6) {
-      inet_ntop(AF_INET6, &conn->rem.ip, addr, sizeof(addr));
+        inet_ntop(AF_INET6, &conn->rem.ip, addr, sizeof(addr));
     } else {
-      inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
+        inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
     }
 
     MG_INFO(("Opening stream `%.*s` (ip `%s`)", (int) stream.len, stream.buf, addr));
@@ -150,9 +150,9 @@ static void rm_client(struct mg_connection *conn)
             char addr[INET6_ADDRSTRLEN] = {0};
 
             if(conn->rem.is_ip6) {
-              inet_ntop(AF_INET6, &conn->rem.ip, addr, sizeof(addr));
+                inet_ntop(AF_INET6, &conn->rem.ip, addr, sizeof(addr));
             } else {
-              inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
+                inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
             }
 
             MG_INFO(("Closing stream `%.*s` (ip `%s`)", (int) (*pp)->stream.len, (*pp)->stream.buf, addr));
@@ -353,7 +353,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             stream_size = mg_str_n(stream_size_start, (long) stream_size_end - (long) stream_size_start);
 
             /*--------------------------------------------------------------------------------------------------------*/
-            /* SEND PAYLOAD AS JSON                                                                                   */
+            /* EXTRACT AND SEND PAYLOAD                                                                               */
             /*--------------------------------------------------------------------------------------------------------*/
 
             for(client_t *client = clients; client != NULL; client = client->next)
