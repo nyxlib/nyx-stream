@@ -14,7 +14,7 @@
 /* CONFIGURATION                                                                                                      */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static const char *BIND_URL = "ws://0.0.0.0:8379";
+static const char *BIND_URL = "http://0.0.0.0:8379";
 
 static const char *REDIS_URL = "tcp://127.0.0.1:6379";
 
