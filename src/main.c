@@ -29,8 +29,6 @@ static uint32_t STREAM_TIMEOUT_MS = 5000;
 
 static uint32_t KEEPALIVE_MS = 10000;
 
-static uint32_t RETRY_MS = 1000;
-
 static uint32_t POLL_MS = 10;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -791,7 +789,7 @@ int main(int argc, char **argv)
 
     mg_timer_add(&mgr, KEEPALIVE_MS, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, keepalive_timer_handler, &mgr);
 
-    mg_timer_add(&mgr, RETRY_MS, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
+    mg_timer_add(&mgr, 1000, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
