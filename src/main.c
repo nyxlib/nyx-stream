@@ -392,7 +392,8 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
         /*------------------------------------------------------------------------------------------------------------*/
 
         struct mg_str stream_name;
-        struct mg_str stream_size;
+        struct mg_str stream_dim;
+        struct mg_str payload;
 
         char *p = (char *) conn->recv.buf;
         char *q = (char *) conn->recv.buf;
@@ -435,35 +436,27 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             if(p == NULL) goto __exit;
             p += 1;
 
-            const char *stream_size_start = p + 0;
+            const char *stream_dim_start = p + 0;
 
             p = strstr(p, "\r\n");
             if(p == NULL) goto __exit;
             p += 2;
 
-            const char *stream_size_end = p - 2;
+            const char *stream_dim_end = p - 2;
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            stream_size = mg_str_n(stream_size_start, (long) stream_size_end - (long) stream_size_start);
+            stream_dim = mg_str_n(stream_dim_start, (long) stream_dim_end - (long) stream_dim_start);
 
             /*--------------------------------------------------------------------------------------------------------*/
-            /* EXTRACT AND SEND PAYLOAD                                                                               */
+            /* EXTRACT PAYLOAD                                                                                        */
             /*--------------------------------------------------------------------------------------------------------*/
 
-            for(client_t *client = clients; client != NULL; client = client->next)
-            {
-                if(mg_strcmp(client->stream, stream_name) == 0)
-                {
-                    mg_printf(client->conn, "data: {");
-                }
-            }
+            uint32_t n_fields = mg_str_to_uint32(stream_dim, 0) / 2;
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            uint32_t n_fields = mg_str_to_uint32(stream_size, 0) / 2;
-
-            /*--------------------------------------------------------------------------------------------------------*/
+            const char *payload_start = p;
 
             for(uint32_t i = 0; i < n_fields; i++)
             {
@@ -475,17 +468,9 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                 if(p == NULL) goto __exit;
                 p += 2;
 
-                const char *key_start = p + 0;
-
                 p = strstr(p, "\r\n");
                 if(p == NULL) goto __exit;
                 p += 2;
-
-                const char *key_end = p - 2;
-
-                /*----------------------------------------------------------------------------------------------------*/
-
-                int key_len = (int) ((long) key_end - (long) key_start);
 
                 /*----------------------------------------------------------------------------------------------------*/
                 /* EXTRACT FIELD VAL                                                                                  */
@@ -495,67 +480,18 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                 if(p == NULL) goto __exit;
                 p += 2;
 
-                const char *val_start = p + 0;
-
                 p = strstr(p, "\r\n");
                 if(p == NULL) goto __exit;
                 p += 2;
 
-                const char *val_end = p - 2;
-
-                /*----------------------------------------------------------------------------------------------------*/
-
-                int val_len = (int) ((long) val_end - (long) val_start);
-
-                /*----------------------------------------------------------------------------------------------------*/
-                /* EMIT JSON KEY-VAL ENTRY                                                                            */
-                /*----------------------------------------------------------------------------------------------------*/
-
-                /**/ if(key_len > 1 && (key_start[0] == '@' || key_start[0] == '#'))
-                {
-                    /*------------------------------------------------------------------------------------------------*/
-                    /* STRING VALUES AND BASE64-ENCODED ARRAYS                                                        */
-                    /*------------------------------------------------------------------------------------------------*/
-
-                    for(client_t *client = clients; client != NULL; client = client->next)
-                    {
-                        if(mg_strcmp(client->stream, stream_name) == 0)
-                        {
-                            if(i == n_fields - 1) {
-                                mg_printf(client->conn, "\"%.*s\":\"%.*s\"", (int) key_len, key_start, (int) val_len, val_start);
-                            }
-                            else {
-                                mg_printf(client->conn, "\"%.*s\":\"%.*s\",", (int) key_len, key_start, (int) val_len, val_start);
-                            }
-                        }
-                    }
-
-                    /*------------------------------------------------------------------------------------------------*/
-                }
-                else if(key_len > 0 && val_len > 0)
-                {
-                    /*------------------------------------------------------------------------------------------------*/
-                    /* OTHER VALUES                                                                                   */
-                    /*------------------------------------------------------------------------------------------------*/
-
-                    for(client_t *client = clients; client != NULL; client = client->next)
-                    {
-                        if(mg_strcmp(client->stream, stream_name) == 0)
-                        {
-                            if(i == n_fields - 1) {
-                                mg_printf(client->conn, "\"%.*s\":%.*s", (int) key_len, key_start, (int) val_len, val_start);
-                            }
-                            else {
-                                mg_printf(client->conn, "\"%.*s\":%.*s,", (int) key_len, key_start, (int) val_len, val_start);
-                            }
-                        }
-                    }
-
-                    /*------------------------------------------------------------------------------------------------*/
-                }
-
                 /*----------------------------------------------------------------------------------------------------*/
             }
+
+            const char *payload_end = p;
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            payload = mg_str_n(payload_start, (long) payload_end - (long) payload_start);
 
             /*--------------------------------------------------------------------------------------------------------*/
 
@@ -563,7 +499,12 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             {
                 if(mg_strcmp(client->stream, stream_name) == 0)
                 {
-                    mg_printf(client->conn, "}\n\n");
+                    mg_printf(
+                            client->conn,
+                            "nyx-stream[%.*s]\r\n%.*s",
+                            (int) stream_dim.len, stream_dim.buf,
+                            (int) payload    .len, payload    .buf
+                    );
 
                     client->last_ping = mg_millis();
                 }
