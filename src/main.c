@@ -480,7 +480,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                         WEBSOCKET_OP_TEXT,
                         "nyx-stream[%.*s]\r\n%.*s",
                         (int) stream_dim.len, stream_dim.buf,
-                        (int) payload    .len, payload    .buf
+                        (int) payload   .len, payload   .buf
                     );
                 }
             }
