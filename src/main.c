@@ -14,9 +14,9 @@
 /* CONFIGURATION                                                                                                      */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static const char *REDIS_URL = "tcp://127.0.0.1:6379";
+static const char *BIND_URL = "ws://0.0.0.0:8379";
 
-static const char *BIND_URL = "http://0.0.0.0:8379";
+static const char *REDIS_URL = "tcp://127.0.0.1:6379";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -28,6 +28,8 @@ static const char *REDIS_PASSWORD = "";
 static uint32_t STREAM_TIMEOUT_MS = 5000;
 
 static uint32_t KEEPALIVE_MS = 10000;
+
+static uint32_t RETRY_MS = 1000;
 
 static uint32_t POLL_MS = 10;
 
@@ -82,8 +84,6 @@ typedef struct client_s
 
     struct mg_str stream;
 
-    uint64_t last_ping;
-
     /*----------------------------------------------------------------------------------------------------------------*/
 
     struct client_s *next;
@@ -122,12 +122,10 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
     /* CREATE CLIENT                                                                                                  */
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    client_t *client = (client_t *) malloc(sizeof(struct client_s) + stream.len);
+    client_t *client = (client_t *) malloc(sizeof(struct client_s));
 
     if(client == NULL)
     {
-        mg_http_reply(conn, 400, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Out of memory\n");
-
         MG_ERROR(("Out of memory!"));
 
         return;
@@ -135,35 +133,15 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    char *stream_buf = (char *) memcpy(client + 1, stream.buf, stream.len);
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    client->conn       = conn       ;
-    client->stream.buf = stream_buf ;
-    client->stream.len = stream.len ;
-    client->last_ping  = mg_millis();
-    client->next       = clients    ;
+    client->conn   = conn   ;
+    client->stream = stream ;
+    client->next   = clients;
 
     /*----------------------------------------------------------------------------------------------------------------*/
     /* REGISTER CLIENT                                                                                                */
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    conn->fn_data = clients = client;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-    /* EMIT HTTP HEADER                                                                                               */
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    mg_printf(
-        conn,
-        "HTTP/1.1 200 OK\r\n"
-        "Access-Control-Allow-Origin: *\r\n"
-        "Content-Type: text/event-stream\r\n"
-        "Cache-Control: no-cache\r\n"
-        "Connection: keep-alive\r\n"
-        "\r\n"
-    );
+    clients = client;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 }
@@ -499,14 +477,13 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             {
                 if(mg_strcmp(client->stream, stream_name) == 0)
                 {
-                    mg_printf(
-                            client->conn,
-                            "nyx-stream[%.*s]\r\n%.*s",
-                            (int) stream_dim.len, stream_dim.buf,
-                            (int) payload    .len, payload    .buf
+                    mg_ws_printf(
+                        client->conn,
+                        WEBSOCKET_OP_TEXT,
+                        "nyx-stream[%.*s]\r\n%.*s",
+                        (int) stream_dim.len, stream_dim.buf,
+                        (int) payload    .len, payload    .buf
                     );
-
-                    client->last_ping = mg_millis();
                 }
             }
 
@@ -551,10 +528,19 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
             {
                 if(hm->uri.len > 9)
                 {
-                    add_client(conn, mg_str_n(
+                    conn->fn_data = strndup(
                         hm->uri.buf + 9,
                         hm->uri.len - 9
-                    ));
+                    );
+
+                    if(conn->fn_data != NULL)
+                    {
+                        mg_ws_upgrade(conn, hm, NULL);
+                    }
+                    else
+                    {
+                        mg_http_reply(conn, 400, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Out of memory error\n");
+                    }
                 }
                 else
                 {
@@ -646,28 +632,21 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
+    /* MG_EV_WS_OPEN                                                                                                  */
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    else if(event == MG_EV_WS_OPEN)
+    {
+        add_client(conn, mg_str(conn->fn_data));
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
     /* MG_EV_CLOSE                                                                                                    */
     /*----------------------------------------------------------------------------------------------------------------*/
 
     else if(event == MG_EV_CLOSE)
     {
-        rm_client(conn);
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-    /* MG_EV_POLL                                                                                                     */
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    else if(event == MG_EV_POLL)
-    {
-        client_t *client = (client_t *) conn->fn_data;
-
-        if(client != NULL && (mg_millis() - client->last_ping) > KEEPALIVE_MS)
-        {
-            mg_printf(conn, ": keepalive\n\n");
-
-            client->last_ping = mg_millis();
-        }
+        rm_client(conn); free(conn->fn_data);
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -742,6 +721,16 @@ static void parse_args(int argc, char **argv)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+static void keepalive_timer_handler(__attribute__ ((unused)) void *arg)
+{
+    for(client_t *client = clients; client != NULL; client = client->next)
+    {
+        mg_ws_send(client->conn, NULL, 0x00, WEBSOCKET_OP_PING);
+    }
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 static void retry_timer_handler(void *arg)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -800,7 +789,9 @@ int main(int argc, char **argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    mg_timer_add(&mgr, 1000, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
+    mg_timer_add(&mgr, KEEPALIVE_MS, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, keepalive_timer_handler, &mgr);
+
+    mg_timer_add(&mgr, RETRY_MS, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
