@@ -513,7 +513,9 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         /* ROUTE /streams/<device/><stream>                                                                           */
         /*------------------------------------------------------------------------------------------------------------*/
 
-        /**/ if(mg_match(hm->uri, mg_str("/streams/*/*"), NULL))
+        struct mg_str caps[2];
+
+        /**/ if(mg_match(hm->uri, mg_str("/streams/*/*"), caps) && caps[0].len > 0 && caps[1].len > 0)
         {
             if(mg_strcasecmp(hm->method, mg_str("GET")) == 0)
             {
