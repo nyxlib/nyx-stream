@@ -307,7 +307,7 @@ static void redis_poll()
 static void redis_handler(struct mg_connection *conn, int event, __attribute__ ((unused)) void *event_data)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
-    /* MG_EV_OPEN                                                                                                  */
+    /* MG_EV_OPEN                                                                                                     */
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /**/ if(event == MG_EV_OPEN)
