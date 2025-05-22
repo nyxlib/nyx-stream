@@ -510,10 +510,10 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         struct mg_http_message *hm = (struct mg_http_message *) event_data;
 
         /*------------------------------------------------------------------------------------------------------------*/
-        /* ROUTE /streams/<stream>                                                                                    */
+        /* ROUTE /streams/<device/><stream>                                                                           */
         /*------------------------------------------------------------------------------------------------------------*/
 
-        /**/ if(mg_match(hm->uri, mg_str("/streams/*"), NULL))
+        /**/ if(mg_match(hm->uri, mg_str("/streams/*/*"), NULL))
         {
             if(mg_strcasecmp(hm->method, mg_str("GET")) == 0)
             {
