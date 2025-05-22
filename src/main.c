@@ -74,27 +74,20 @@ static void signal_handler(int signo)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-typedef struct client_s
+struct mg_client
 {
-    /*----------------------------------------------------------------------------------------------------------------*/
+    struct mg_str stream;
 
     struct mg_connection *conn;
 
-    struct mg_str stream;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    struct client_s *next;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-} client_t;
+    struct mg_client *next;
+};
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static client_t *clients = NULL;
+static bool redis_locked = true;
 
-static bool volatile redis_waiting = true;
+static struct mg_client *clients = NULL;
 
 static struct mg_connection *http_conn = NULL;
 
@@ -120,7 +113,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
     /* CREATE CLIENT                                                                                                  */
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    client_t *client = (client_t *) malloc(sizeof(struct client_s));
+    struct mg_client *client = (struct mg_client *) malloc(sizeof(struct mg_client));
 
     if(client == NULL)
     {
@@ -131,8 +124,8 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    client->conn   = conn   ;
     client->stream = stream ;
+    client->conn   =  conn  ;
     client->next   = clients;
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -148,7 +141,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
 static void rm_client(struct mg_connection *conn)
 {
-    for(client_t **pp = &clients; *pp != NULL; pp = &(*pp)->next)
+    for(struct mg_client **pp = &clients; *pp != NULL; pp = &(*pp)->next)
     {
         if((*pp)->conn == conn)
         {
@@ -166,7 +159,7 @@ static void rm_client(struct mg_connection *conn)
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            client_t *dead = *pp; *pp = (*pp)->next;
+            struct mg_client *dead = *pp; *pp = (*pp)->next;
 
             free(dead);
 
@@ -215,7 +208,7 @@ void redis_auth()
 
 static void redis_poll()
 {
-    if(redis_conn == NULL || redis_waiting)
+    if(redis_conn == NULL || redis_locked)
     {
         return;
     }
@@ -230,7 +223,7 @@ static void redis_poll()
 
     struct mg_str streams[64];
 
-    for(client_t *client = clients; client != NULL && n_streams < sizeof(streams) / sizeof(struct mg_str); client = client->next)
+    for(struct mg_client *client = clients; client != NULL && n_streams < sizeof(streams) / sizeof(struct mg_str); client = client->next)
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
@@ -297,7 +290,7 @@ static void redis_poll()
 
         mg_send(redis_conn, cmd_buff, cmd_size);
 
-        redis_waiting = true;
+        redis_locked = true;
 
         /*------------------------------------------------------------------------------------------------------------*/
 
@@ -321,7 +314,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     {
         MG_INFO(("%lu OPEN", conn->id));
 
-        redis_waiting = false;
+        redis_locked = false;
 
         redis_conn = conn;
     }
@@ -334,7 +327,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
     {
         MG_INFO(("%lu CLOSE", conn->id));
 
-        redis_waiting = true;
+        redis_locked = true;
 
         redis_conn = NULL;
     }
@@ -360,7 +353,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
         {
             mg_iobuf_del(&conn->recv, 0, 5);
 
-            redis_waiting = false;
+            redis_locked = false;
 
             return;
         }
@@ -471,7 +464,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            for(client_t *client = clients; client != NULL; client = client->next)
+            for(struct mg_client *client = clients; client != NULL; client = client->next)
             {
                 if(mg_strcmp(client->stream, stream_name) == 0)
                 {
@@ -492,7 +485,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 __exit:
         mg_iobuf_del(&conn->recv, 0, (long) p - (long) q);
 
-        redis_waiting = false;
+        redis_locked = false;
 
         return;
 
@@ -654,7 +647,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
 static void keepalive_timer_handler(__attribute__ ((unused)) void *arg)
 {
-    for(client_t *client = clients; client != NULL; client = client->next)
+    for(struct mg_client *client = clients; client != NULL; client = client->next)
     {
         mg_ws_send(client->conn, NULL, 0x00, WEBSOCKET_OP_PING);
     }
