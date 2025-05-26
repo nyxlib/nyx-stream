@@ -124,9 +124,9 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    client->stream = stream ;
-    client->conn   =  conn  ;
-    client->next   = clients;
+    client->stream = stream;
+    client->conn = conn;
+    client->next = clients;
 
     /*----------------------------------------------------------------------------------------------------------------*/
     /* REGISTER CLIENT                                                                                                */
