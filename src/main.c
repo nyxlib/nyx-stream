@@ -107,7 +107,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
         inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
     }
 
-    MG_INFO(("Opening stream `%.*s` (ip `%s`)", (int) stream.len, stream.buf, addr));
+    MG_INFO(("Opening stream `%.*s` (ip `%s`)", (int) stream.len, (char *) stream.buf, addr));
 
     /*----------------------------------------------------------------------------------------------------------------*/
     /* CREATE CLIENT                                                                                                  */
@@ -155,7 +155,7 @@ static void rm_client(struct mg_connection *conn)
                 inet_ntop(AF_INET, &conn->rem.ip, addr, sizeof(addr));
             }
 
-            MG_INFO(("Closing stream `%.*s` (ip `%s`)", (int) (*pp)->stream.len, (*pp)->stream.buf, addr));
+            MG_INFO(("Closing stream `%.*s` (ip `%s`)", (int) (*pp)->stream.len, (char *) (*pp)->stream.buf, addr));
 
             /*--------------------------------------------------------------------------------------------------------*/
 
@@ -279,7 +279,7 @@ static void redis_poll()
         );
 
         for(size_t i = 0; i < n_streams; i++) {
-            cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, streams[i].buf);
+            cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, (char *) streams[i].buf);
         }
 
         for(size_t i = 0; i < n_streams; i++) {
@@ -304,57 +304,57 @@ static void redis_poll()
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-__attribute__((always_inline)) static inline char *parse_redis_bulk(char *p, struct mg_str *out)
+__attribute__((always_inline)) static inline char *parse_redis_bulk(struct mg_str *out, char *buf)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
     /* EXTRACT SIZE                                                                                                   */
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    p = strchr(p, '$');
+    buf = strchr(buf, '$');
 
-    if(p == NULL)
+    if(buf == NULL)
     {
         return NULL;
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    size_t len = strtoul(p + 1, &p, 10);
+    size_t len = strtoul(buf + 1, &buf, 10);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    if(*(p + 0) != '\r'
+    if(*(buf + 0) != '\r'
        ||
-       *(p + 1) != '\n'
+       *(buf + 1) != '\n'
     ) {
         return NULL;
     }
 
-    p += 2;
+    buf += 2;
 
     /*----------------------------------------------------------------------------------------------------------------*/
     /* EXTRACT VALUE                                                                                                  */
     /*----------------------------------------------------------------------------------------------------------------*/
 
     out->len = len;
-    out->buf = p;
+    out->buf = buf;
 
-    p += len;
+    buf += len;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    if(*(p + 0) != '\r'
+    if(*(buf + 0) != '\r'
        ||
-       *(p + 1) != '\n'
+       *(buf + 1) != '\n'
     ) {
         return NULL;
     }
 
-    p += 2;
+    buf += 2;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    return p;
+    return buf;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -416,7 +416,6 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
         /*------------------------------------------------------------------------------------------------------------*/
 
         struct mg_str stream_name;
-        struct mg_str stream_dim;
         struct mg_str payload;
         struct mg_str temp;
 
@@ -429,13 +428,13 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             /* EXTRACT STREAM NAME                                                                                    */
             /*--------------------------------------------------------------------------------------------------------*/
 
-            if((p = parse_redis_bulk(p, &stream_name)) == NULL) goto __exit;
+            if((p = parse_redis_bulk(&stream_name, p)) == NULL) goto __exit;
 
             /*--------------------------------------------------------------------------------------------------------*/
             /* EXTRACT RECORD ID                                                                                      */
             /*--------------------------------------------------------------------------------------------------------*/
 
-            if((p = parse_redis_bulk(p, &temp)) == NULL) goto __exit;
+            if((p = parse_redis_bulk(&temp, p)) == NULL) goto __exit;
 
             /*--------------------------------------------------------------------------------------------------------*/
             /* EXTRACT STREAM DIM                                                                                     */
@@ -444,23 +443,13 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             if((p = strchr(p, '*')) == NULL) goto __exit;
             p += 1;
 
-            const char *stream_dim_start = p + 0;
+            uint32_t n_fields = strtoul(p, &p, 10) / 2;
 
             if((p = strchr(p, '\r')) == NULL) goto __exit;
             p += 2;
 
-            const char *stream_dim_end = p - 2;
-
-            /*--------------------------------------------------------------------------------------------------------*/
-
-            stream_dim = mg_str_n(stream_dim_start, (long) stream_dim_end - (long) stream_dim_start);
-
             /*--------------------------------------------------------------------------------------------------------*/
             /* EXTRACT PAYLOAD                                                                                        */
-            /*--------------------------------------------------------------------------------------------------------*/
-
-            uint32_t n_fields = mg_str_to_uint32(stream_dim, 0) / 2;
-
             /*--------------------------------------------------------------------------------------------------------*/
 
             const char *payload_start = p;
@@ -471,13 +460,13 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                 /* EXTRACT FIELD KEY                                                                                  */
                 /*----------------------------------------------------------------------------------------------------*/
 
-                if((p = parse_redis_bulk(p, &temp)) == NULL) goto __exit;
+                if((p = parse_redis_bulk(&temp, p)) == NULL) goto __exit;
 
                 /*----------------------------------------------------------------------------------------------------*/
                 /* EXTRACT FIELD VAL                                                                                  */
                 /*----------------------------------------------------------------------------------------------------*/
 
-                if((p = parse_redis_bulk(p, &temp)) == NULL) goto __exit;
+                if((p = parse_redis_bulk(&temp, p)) == NULL) goto __exit;
 
                 /*----------------------------------------------------------------------------------------------------*/
             }
@@ -497,9 +486,10 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                     mg_ws_printf(
                         client->conn,
                         WEBSOCKET_OP_TEXT,
-                        "nyx-stream[%.*s]\r\n%.*s",
-                        (int) stream_dim.len, stream_dim.buf,
-                        (int) payload   .len, payload   .buf
+                        "nyx-stream[%d]\r\n%.*s",
+                        n_fields,
+                        (int) payload.len,
+                        (char *) payload.buf
                     );
                 }
             }
