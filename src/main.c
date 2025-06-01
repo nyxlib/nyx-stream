@@ -478,21 +478,42 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             payload = mg_str_n(payload_start, (long) payload_end - (long) payload_start);
 
             /*--------------------------------------------------------------------------------------------------------*/
+            /* BUILD MESSAGE                                                                                          */
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            size_t message_len = 14 + intlen(n_fields) + payload.len;
+
+            struct mg_str message = mg_str_n(malloc(message_len), message_len);
+
+            if(message.buf == NULL)
+            {
+                goto __exit;
+            }
+
+            memcpy(message.buf + sprintf(message.buf, "nyx-stream[%d]\r\n", n_fields), payload.buf, payload.len);
+
+            /*--------------------------------------------------------------------------------------------------------*/
+            /* SEND MESSAGE                                                                                           */
+            /*--------------------------------------------------------------------------------------------------------*/
 
             for(struct mg_client *client = clients; client != NULL; client = client->next)
             {
                 if(mg_strcmp(client->stream, stream_name) == 0)
                 {
-                    mg_ws_printf(
+                    mg_ws_send(
                         client->conn,
-                        WEBSOCKET_OP_BINARY,
-                        "nyx-stream[%d]\r\n%.*s",
-                        n_fields,
-                        (int) payload.len,
-                        (char *) payload.buf
+                        message.buf,
+                        message.len,
+                        WEBSOCKET_OP_BINARY
                     );
                 }
             }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+            /* SEND MESSAGE                                                                                           */
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            free(message.buf);
 
             /*--------------------------------------------------------------------------------------------------------*/
         }
