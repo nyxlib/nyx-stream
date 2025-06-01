@@ -485,7 +485,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
                 {
                     mg_ws_printf(
                         client->conn,
-                        WEBSOCKET_OP_TEXT,
+                        WEBSOCKET_OP_BINARY,
                         "nyx-stream[%d]\r\n%.*s",
                         n_fields,
                         (int) payload.len,
