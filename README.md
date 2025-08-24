@@ -9,7 +9,9 @@
 
 # Nyx Stream
 
-Redis-based streams for the Nyx ecosystem.
+The Nyx Node project introduces a protocol, backward-compatible with INDI 1.7, for controlling astronomical hardware. It enhances INDI by supporting multiple independent nodes, each with its own embedded protocol stack. The nodes can communicate via an MQTT broker, a Redis cache (low latency streams) or directly over TCP, offering flexibility and scalability for distributed systems.
+
+This is the repository of the Redis-based stream server for the Nyx ecosystem.
 
 # Build instructions
 
