@@ -9,7 +9,7 @@
 
 # Nyx Stream
 
-TODO
+Redis-based streams for the Nyx ecosystem.
 
 # Build instructions
 
