@@ -15,6 +15,7 @@ Redis-based streams for the Nyx ecosystem.
 
 ```bash
 make
+sudo make install
 ```
 
 # Home page and documentation
