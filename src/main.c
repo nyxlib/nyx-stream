@@ -868,8 +868,7 @@ int main(int argc, char **argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
+    mg_log_set(MG_LL_INFO);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -888,6 +887,9 @@ int main(int argc, char **argv)
     mg_timer_add(&mgr, 1000, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
+
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
 
     while(s_signo == 0)
     {
