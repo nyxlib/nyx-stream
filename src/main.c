@@ -8,7 +8,7 @@
 #include <getopt.h>
 #include <signal.h>
 
-#include "mongoose.h"
+#include "external/mongoose.h"
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* CONFIGURATION                                                                                                      */
@@ -269,7 +269,7 @@ static void redis_poll()
 
         /*------------------------------------------------------------------------------------------------------------*/
 
-        int cmd_size = snprintf(
+        size_t cmd_size = (size_t) snprintf(
             cmd_buff,
             exp_size,
             "*%zu\r\n"
@@ -283,11 +283,11 @@ static void redis_poll()
         );
 
         for(size_t i = 0; i < n_streams; i++) {
-            cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, (char *) streams[i].buf);
+            cmd_size += (size_t) snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$%d\r\n%.*s\r\n", (int) streams[i].len, (int) streams[i].len, (char *) streams[i].buf);
         }
 
         for(size_t i = 0; i < n_streams; i++) {
-            cmd_size += snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$1\r\n$\r\n");
+            cmd_size += (size_t) snprintf(cmd_buff + cmd_size, exp_size - cmd_size, "$1\r\n$\r\n");
         }
 
         /*------------------------------------------------------------------------------------------------------------*/
@@ -447,7 +447,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
             if((p = strchr(p, '*')) == NULL) goto __exit;
             p += 1;
 
-            uint32_t n_fields = strtoul(p, &p, 10) / 2;
+            uint32_t n_fields = (uint32_t) strtoul(p, &p, 10) / 2;
 
             if((p = strchr(p, '\r')) == NULL) goto __exit;
             p += 2;
@@ -479,7 +479,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            payload = mg_str_n(payload_start, (long) payload_end - (long) payload_start);
+            payload = mg_str_n(payload_start, (size_t) payload_end - (size_t) payload_start);
 
             /*--------------------------------------------------------------------------------------------------------*/
             /* BUILD MESSAGE                                                                                          */
@@ -524,7 +524,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
         /*------------------------------------------------------------------------------------------------------------*/
 __exit:
-        mg_iobuf_del(&conn->recv, 0, (long) p - (long) q);
+        mg_iobuf_del(&conn->recv, 0, (size_t) p - (size_t) q);
 
         redis_locked = false;
 

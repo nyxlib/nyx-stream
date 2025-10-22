@@ -21,7 +21,7 @@ def download_mongoose():
 
         if response.status_code == 200:
 
-            with open(f'src/{filename}', 'wt') as f:
+            with open(f'src/external/{filename}', 'wt') as f:
 
                 f.write(response.content.decode('UTF-8'))
 
