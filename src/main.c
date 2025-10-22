@@ -14,14 +14,21 @@
 /* CONFIGURATION                                                                                                      */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static const char *HTTP_URL = "http://0.0.0.0:8379";
+static char *HTTP_URL = "http://0.0.0.0:8379";
 
-static const char *REDIS_URL = "tcp://127.0.0.1:6379";
+static char *MQTT_URL = "mqtt://127.0.0.1:1883";
+
+static char *REDIS_URL = "tcp://127.0.0.1:6379";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static const char *REDIS_USERNAME = "";
-static const char *REDIS_PASSWORD = "";
+static char *MQTT_USERNAME = "";
+static char *MQTT_PASSWORD = "";
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+static char *REDIS_USERNAME = "";
+static char *REDIS_PASSWORD = "";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -29,11 +36,11 @@ static char REDIS_TOKEN[17] = "";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static uint32_t STREAM_TIMEOUT_MS = 5000;
+static uint32_t STREAM_TIMEOUT_MS = 5000U;
 
-static uint32_t KEEPALIVE_MS = 10000;
+static uint32_t KEEPALIVE_MS = 10000U;
 
-static uint32_t POLL_MS = 10;
+static uint32_t POLL_MS = 10U;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* HELPERS                                                                                                            */
@@ -94,6 +101,8 @@ static bool redis_locked = true;
 static struct mg_client *clients = NULL;
 
 static struct mg_connection *http_conn = NULL;
+
+static struct mg_connection *mqtt_conn = NULL;
 
 static struct mg_connection *redis_conn = NULL;
 
@@ -371,7 +380,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
     /**/ if(event == MG_EV_OPEN)
     {
-        MG_INFO(("%lu OPEN", conn->id));
+        MG_INFO(("%lu REDIS OPEN", conn->id));
 
         redis_locked = false;
 
@@ -384,7 +393,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
     else if(event == MG_EV_CLOSE)
     {
-        MG_INFO(("%lu CLOSE", conn->id));
+        MG_INFO(("%lu REDIS CLOSE", conn->id));
 
         redis_locked = true;
 
@@ -531,6 +540,32 @@ __exit:
         return;
 
         /*------------------------------------------------------------------------------------------------------------*/
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+static void mqtt_handler(struct mg_connection *conn, int event, __attribute__ ((unused)) void *event_data)
+{
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /**/ if(event == MG_EV_OPEN)
+    {
+        MG_INFO(("%lu MQTT OPEN", conn->id));
+
+        mqtt_conn = conn;
+    }
+    else if(event == MG_EV_CLOSE)
+    {
+        MG_INFO(("%lu MQTT CLOSE", conn->id));
+
+        mqtt_conn = NULL;
+    }
+    else if(event == MG_EV_ERROR)
+    {
+        MG_ERROR(("MQTT ERROR"));
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -745,6 +780,30 @@ static void retry_timer_handler(void *arg)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    if(mqtt_conn == NULL)
+    {
+        struct mg_mqtt_opts mqtt_opts = {
+            .client_id = mg_str("nyx-stream"),
+            .user = mg_str(MQTT_USERNAME),
+            .pass = mg_str(MQTT_PASSWORD),
+            .version = 0x04,
+            .clean = true,
+        };
+
+        mqtt_conn = mg_mqtt_connect(mgr, MQTT_URL, &mqtt_opts, mqtt_handler, NULL);
+
+        if(mqtt_conn == NULL)
+        {
+            MG_ERROR(("Cannot open MQTT connection!"));
+        }
+        else
+        {
+            MG_INFO(("Connected to %s", MQTT_URL));
+        }
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     if(redis_conn == NULL)
     {
         redis_conn = mg_connect(mgr, REDIS_URL, redis_handler, NULL);
@@ -760,6 +819,21 @@ static void retry_timer_handler(void *arg)
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+static void ping_timer_handler(__attribute__ ((unused)) void *arg)
+{
+    if(mqtt_conn != NULL)
+    {
+        struct mg_mqtt_opts opts = {0};
+
+        opts.topic = mg_str("nyx/ping/node");
+        opts.message = mg_str("nyx-stream");
+
+        mg_mqtt_pub(mqtt_conn, &opts);
+    }
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -798,9 +872,12 @@ static void parse_args(int argc, char **argv)
 
     static struct option long_options[] = {
         {"http",           required_argument, 0, 'h'},
+        {"mqtt",           required_argument, 0, 'm'},
+        {"mqtt-username",  optional_argument, 0, 'u'},
+        {"mqtt-password",  optional_argument, 0, 'p'},
         {"redis",          required_argument, 0, 'r'},
-        {"username",       optional_argument, 0, 'u'},
-        {"password",       optional_argument, 0, 'p'},
+        {"redis-username", optional_argument, 0, 'v'},
+        {"redis-password", optional_argument, 0, 'q'},
         {"stream-timeout", required_argument, 0, 's'},
         {"keepalive",      required_argument, 0, 'k'},
         {"poll",           required_argument, 0, 'l'},
@@ -814,7 +891,7 @@ static void parse_args(int argc, char **argv)
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
-        int opt = getopt_long(argc, argv, "h:m:r:u:p:s:k:l:", long_options, NULL);
+        int opt = getopt_long(argc, argv, "h:m:u:p:r:v:q:s:k:l:", long_options, NULL);
 
         if(opt < 0)
         {
@@ -826,10 +903,14 @@ static void parse_args(int argc, char **argv)
         switch(opt)
         {
             case 'h': HTTP_URL = optarg; break;
-            case 'r': REDIS_URL = optarg; break;
 
-            case 'u': REDIS_USERNAME = optarg; break;
-            case 'p': REDIS_PASSWORD = optarg; break;
+            case 'm': MQTT_URL = optarg; break;
+            case 'u': MQTT_USERNAME = optarg; break;
+            case 'p': MQTT_PASSWORD = optarg; break;
+
+            case 'r': REDIS_URL = optarg; break;
+            case 'v': REDIS_USERNAME = optarg; break;
+            case 'q': REDIS_PASSWORD = optarg; break;
 
             case 's': STREAM_TIMEOUT_MS = mg_str_to_uint32(mg_str(optarg), STREAM_TIMEOUT_MS); break;
             case 'k': KEEPALIVE_MS = mg_str_to_uint32(mg_str(optarg), KEEPALIVE_MS); break;
@@ -837,15 +918,19 @@ static void parse_args(int argc, char **argv)
 
             default:
                 printf("Usage: %s [options]\n", argv[0]);
-                printf("  -h --http <url>           HTTP connection string (default: `%s`)\n", HTTP_URL);
-                printf("  -r --redis <url>          Redis connection string (default: `%s`)\n", REDIS_URL);
+                printf("  -h --http <url>                 HTTP connection string (default: `%s`)\n", HTTP_URL);
                 printf("\n");
-                printf("  -u --username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
-                printf("  -p --password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
+                printf("  -m --mqtt <url>                 MQTT connection string (default: `%s`)\n", MQTT_URL);
+                printf("  -u --mqtt-username <username>   MQTT username (default: `%s`)\n", MQTT_USERNAME);
+                printf("  -p --mqtt-password <password>   MQTT password (default: `%s`)\n", MQTT_PASSWORD);
                 printf("\n");
-                printf("  -s --stream-timeout <ms>  Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
-                printf("  -k --keepalive <ms>       Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
-                printf("  -l --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
+                printf("  -r --redis <url>                Redis connection string (default: `%s`)\n", REDIS_URL);
+                printf("  -u --redis-username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
+                printf("  -p --redis-password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
+                printf("\n");
+                printf("  -s --stream-timeout <ms>        Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
+                printf("  -k --keepalive <ms>             Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
+                printf("  -l --poll <ms>                  Poll interval (default: %u ms)\n", POLL_MS);
 
                 exit(0);
         }
@@ -891,7 +976,9 @@ int main(int argc, char **argv)
 
     mg_timer_add(&mgr, KEEPALIVE_MS, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, keepalive_timer_handler, &mgr);
 
-    mg_timer_add(&mgr, 1000, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
+    mg_timer_add(&mgr, 1000U, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, retry_timer_handler, &mgr);
+
+    mg_timer_add(&mgr, 5000U, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, ping_timer_handler, &mgr);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
