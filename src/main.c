@@ -14,7 +14,7 @@
 /* CONFIGURATION                                                                                                      */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static const char *BIND_URL = "http://0.0.0.0:8379";
+static const char *HTTP_URL = "http://0.0.0.0:8379";
 
 static const char *REDIS_URL = "tcp://127.0.0.1:6379";
 
@@ -143,7 +143,7 @@ static void add_client(struct mg_connection *conn, struct mg_str stream)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static void rm_client(struct mg_connection *conn)
+static void rm_client(const struct mg_connection *conn)
 {
     for(struct mg_client **pp = &clients; *pp != NULL; pp = &(*pp)->next)
     {
@@ -308,7 +308,7 @@ static void redis_poll()
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-__attribute__((always_inline)) static inline char *parse_redis_bulk(struct mg_str *out, char *buf)
+__attribute__ ((always_inline)) static inline char *parse_redis_bulk(struct mg_str *out, char *buf)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
     /* EXTRACT SIZE                                                                                                   */
@@ -731,11 +731,15 @@ static void retry_timer_handler(void *arg)
 
     if(http_conn == NULL)
     {
-        http_conn = mg_http_listen(mgr, BIND_URL, http_handler, NULL);
+        http_conn = mg_http_listen(mgr, HTTP_URL, http_handler, NULL);
 
         if(http_conn == NULL)
         {
             MG_ERROR(("Cannot create HTTP listener!"));
+        }
+        else
+        {
+            MG_INFO(("Listening on %s", HTTP_URL));
         }
     }
 
@@ -748,6 +752,10 @@ static void retry_timer_handler(void *arg)
         if(redis_conn == NULL)
         {
             MG_ERROR(("Cannot open Redis connection!"));
+        }
+        else
+        {
+            MG_INFO(("Connected to %s", REDIS_URL));
         }
     }
 
@@ -789,14 +797,14 @@ static void parse_args(int argc, char **argv)
     /*----------------------------------------------------------------------------------------------------------------*/
 
     static struct option long_options[] = {
-        {"bind",           required_argument, 0, 'b'},
+        {"http",           required_argument, 0, 'h'},
         {"redis",          required_argument, 0, 'r'},
         {"username",       optional_argument, 0, 'u'},
         {"password",       optional_argument, 0, 'p'},
         {"stream-timeout", required_argument, 0, 's'},
         {"keepalive",      required_argument, 0, 'k'},
         {"poll",           required_argument, 0, 'l'},
-        {"help",           no_argument,       0, 'h'},
+        {"help",           no_argument,       0, 1000},
         {0, 0, 0, 0},
     };
 
@@ -806,7 +814,7 @@ static void parse_args(int argc, char **argv)
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
-        int opt = getopt_long(argc, argv, "b:r:u:p:s:k:l:h", long_options, NULL);
+        int opt = getopt_long(argc, argv, "h:m:r:u:p:s:k:l:", long_options, NULL);
 
         if(opt < 0)
         {
@@ -817,7 +825,7 @@ static void parse_args(int argc, char **argv)
 
         switch(opt)
         {
-            case 'b': BIND_URL = optarg; break;
+            case 'h': HTTP_URL = optarg; break;
             case 'r': REDIS_URL = optarg; break;
 
             case 'u': REDIS_USERNAME = optarg; break;
@@ -827,10 +835,9 @@ static void parse_args(int argc, char **argv)
             case 'k': KEEPALIVE_MS = mg_str_to_uint32(mg_str(optarg), KEEPALIVE_MS); break;
             case 'l': POLL_MS = mg_str_to_uint32(mg_str(optarg), POLL_MS); break;
 
-            case 'h':
             default:
                 printf("Usage: %s [options]\n", argv[0]);
-                printf("  -b --bind <url>           HTTP connection string (default: `%s`)\n", BIND_URL);
+                printf("  -h --http <url>           HTTP connection string (default: `%s`)\n", HTTP_URL);
                 printf("  -r --redis <url>          Redis connection string (default: `%s`)\n", REDIS_URL);
                 printf("\n");
                 printf("  -u --username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
@@ -872,7 +879,7 @@ int main(int argc, char **argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    MG_INFO(("Starting NyxStream on %s, Redis at %s...", BIND_URL, REDIS_URL));
+    MG_INFO(("Starting NyxStream..."));
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
