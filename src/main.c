@@ -600,7 +600,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 sizeof(token_buf)
             );
 
-            if(token_len != 16 || memcpy(token_buf, REDIS_TOKEN, 16) != 0)
+            if(token_len != 16 || memcmp(token_buf, REDIS_TOKEN, 16) != 0)
             {
                 mg_http_reply(conn, 403, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Unauthorized\n");
 
@@ -925,8 +925,8 @@ static void parse_args(int argc, char **argv)
                 printf("  -p --mqtt-password <password>   MQTT password (default: `%s`)\n", MQTT_PASSWORD);
                 printf("\n");
                 printf("  -r --redis <url>                Redis connection string (default: `%s`)\n", REDIS_URL);
-                printf("  -u --redis-username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
-                printf("  -p --redis-password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
+                printf("  -v --redis-username <username>  Redis username (default: `%s`)\n", REDIS_USERNAME);
+                printf("  -q --redis-password <password>  Redis password (default: `%s`)\n", REDIS_PASSWORD);
                 printf("\n");
                 printf("  -s --stream-timeout <ms>        Stream block timeout (default: %u ms)\n", STREAM_TIMEOUT_MS);
                 printf("  -k --keepalive <ms>             Keepalive interval (default: %u ms)\n", KEEPALIVE_MS);
