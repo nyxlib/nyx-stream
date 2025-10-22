@@ -406,7 +406,10 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
     else if(event == MG_EV_CONNECT)
     {
-        redis_auth();
+        if(*(int *) event_data == 0)
+        {
+            redis_auth();
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -702,6 +705,8 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
         else if(mg_match(hm->uri, mg_str("/stop"), NULL))
         {
+            mg_http_reply(conn, 200, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "OK\n");
+
             s_signo = 1;
         }
 
@@ -750,7 +755,7 @@ static void keepalive_timer_handler(__attribute__ ((unused)) void *arg)
 {
     for(struct mg_client *client = clients; client != NULL; client = client->next)
     {
-        mg_ws_send(client->conn, NULL, 0x00, WEBSOCKET_OP_PING);
+        mg_ws_send(client->conn, "", 0x00, WEBSOCKET_OP_PING);
     }
 }
 
