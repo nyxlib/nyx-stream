@@ -832,7 +832,7 @@ static void ping_timer_handler(__attribute__ ((unused)) void *arg)
         struct mg_mqtt_opts opts = {0};
 
         opts.topic = mg_str("nyx/ping/node");
-        opts.message = mg_str("nyx-stream");
+        opts.message = mg_str("$$nyx-stream$$");
 
         mg_mqtt_pub(mqtt_conn, &opts);
     }
@@ -874,16 +874,21 @@ static void parse_args(int argc, char **argv)
 
     static struct option long_options[] = {
         {"http",           required_argument, 0, 'h'},
+        /**/
         {"mqtt",           required_argument, 0, 'm'},
         {"mqtt-username",  optional_argument, 0, 'u'},
         {"mqtt-password",  optional_argument, 0, 'p'},
+        /**/
         {"redis",          required_argument, 0, 'r'},
         {"redis-username", optional_argument, 0, 'v'},
         {"redis-password", optional_argument, 0, 'q'},
+        /**/
         {"stream-timeout", required_argument, 0, 's'},
         {"keepalive",      required_argument, 0, 'k'},
         {"poll",           required_argument, 0, 'l'},
-        {"help",           no_argument,       0, 1000},
+        /**/
+        {"help",           no_argument,       0, 999},
+        /**/
         {0, 0, 0, 0},
     };
 
