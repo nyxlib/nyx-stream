@@ -406,10 +406,7 @@ static void redis_handler(struct mg_connection *conn, int event, __attribute__ (
 
     else if(event == MG_EV_CONNECT)
     {
-        if(*(int *) event_data == 0)
-        {
-            redis_auth();
-        }
+        redis_auth();
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
