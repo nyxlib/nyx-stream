@@ -832,6 +832,7 @@ static void ping_timer_handler(__attribute__ ((unused)) void *arg)
         struct mg_mqtt_opts opts = {
             .topic = mg_str("nyx/ping/node"),
             .message = mg_str("Nyx Stream Server"),
+            .qos = 0,
         };
 
         mg_mqtt_pub(mqtt_conn, &opts);
