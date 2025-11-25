@@ -14,7 +14,7 @@
 
 # Nyx Stream
 
-The `Nyx` project introduces a protocol, backward-compatible with [INDI 1.7](docs/specs/INDI.pdf) (and `indiserver`), for controlling
+The `Nyx` project introduces a protocol, backward-compatible with [INDI 1.7](docs/specs/INDI.pdf) (and [indiserver](http://docs.indilib.org/indiserver/)), for controlling
 astronomical hardware. It enhances INDI by supporting multiple independent nodes, each with its own embedded protocol
 stack. Nodes can communicate via an [MQTT](https://mqtt.org/) broker, a [Redis](https://redis.io/) cache (data streams)
 or directly over TCP, offering flexibility and scalability for distributed systems.
