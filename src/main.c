@@ -830,7 +830,7 @@ static void ping_timer_handler(__attribute__ ((unused)) void *arg)
     if(mqtt_conn != NULL)
     {
         struct mg_mqtt_opts opts = {
-            .topic = mg_str("nyx/ping/node"),
+            .topic = mg_str("nyx/ping/special"),
             .message = mg_str("$$nyx-stream-server$$"),
             .qos = 0,
         };
