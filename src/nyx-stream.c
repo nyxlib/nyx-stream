@@ -111,7 +111,7 @@ static void add_client(struct mg_connection *conn, const struct mg_str stream, c
 {
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    const uint32_t hash = nyx_hash32(stream.len, stream.buf, 0U);
+    const uint32_t hash = nyx_hash(stream.len, stream.buf, NYX_STREAM_MAGIC);
 
     /*----------------------------------------------------------------------------------------------------------------*/
 

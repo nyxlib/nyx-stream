@@ -62,7 +62,7 @@ buff_t nyx_memory_realloc(__NYX_NULLABLE__ buff_t buff, __NYX_ZEROABLE__ size_t 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-uint32_t nyx_hash32(__NYX_ZEROABLE__ size_t size, __NYX_NULLABLE__ BUFF_t buff, uint32_t seed);
+uint32_t nyx_hash(__NYX_ZEROABLE__ size_t size, __NYX_NULLABLE__ BUFF_t buff, uint32_t seed);
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
