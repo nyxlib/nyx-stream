@@ -472,7 +472,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static void mqtt_handler(struct mg_connection *conn, int event, __attribute__ ((unused)) void *event_data)
+static void mqtt_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ void *event_data)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -565,7 +565,7 @@ static void retry_timer_handler(void *arg)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static void keepalive_timer_handler(__attribute__ ((unused)) void *arg)
+static void keepalive_timer_handler(__NYX_UNUSED__ void *arg)
 {
     for(const struct mg_client *client = clients; client != NULL; client = client->next)
     {
@@ -575,7 +575,7 @@ static void keepalive_timer_handler(__attribute__ ((unused)) void *arg)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static void ping_timer_handler(__attribute__ ((unused)) void *arg)
+static void ping_timer_handler(__NYX_UNUSED__ void *arg)
 {
     if(mqtt_conn != NULL)
     {
