@@ -61,13 +61,13 @@ static void signal_handler(const int signo)
 
 static uint32_t mg_str_to_uint32(const struct mg_str s, const uint32_t default_value)
 {
-    uint32_t value;
+    uint32_t parsed_value;
 
-    return s.buf == NULL
-           ||
-           s.len == 0x00
-           ||
-           mg_str_to_num(s, 10, &value, sizeof(value)) == false ? default_value : value
+    return s.len != 0x00
+           &&
+           s.buf != NULL
+           &&
+           mg_str_to_num(s, 10, &parsed_value, sizeof(parsed_value)) ? parsed_value : default_value
     ;
 }
 
@@ -624,16 +624,16 @@ static void parse_args(const int argc, str_t *argv)
     /*----------------------------------------------------------------------------------------------------------------*/
 
     static struct option long_options[] = {
-        {"tcp-url",         required_argument, 0, 't'},
-        {"http-url",        required_argument, 0, 'h'},
-        {"mqtt-url",        required_argument, 0, 'm'},
+        {"tcp-url",  required_argument, 0, 't'},
+        {"http-url", required_argument, 0, 'h'},
+        {"mqtt-url", required_argument, 0, 'm'},
         /**/
-        {"mqtt-username",   optional_argument, 0, 'u'},
-        {"mqtt-password",   optional_argument, 0, 'p'},
+        {"username", optional_argument, 0, 'u'},
+        {"password", optional_argument, 0, 'p'},
         /**/
-        {"poll",            required_argument, 0, 'l'},
+        {"poll",     required_argument, 0, 'l'},
         /**/
-        {"help",            no_argument,       0, 999},
+        {"help",     no_argument,       0, 999},
         /**/
         {0, 0, 0, 0},
     };
@@ -667,13 +667,13 @@ static void parse_args(const int argc, str_t *argv)
             default:
                 printf("Usage: %s [options]\n", argv[0]);
                 printf("\n");
-                printf("  -t --tcp-url <url>              TCP connection string (default: `%s`)\n", TCP_URL);
-                printf("  -h --http-url <url>             HTTP connection string (default: `%s`)\n", HTTP_URL);
-                printf("  -m --mqtt-url <url>             MQTT connection string (default: `%s`)\n", MQTT_URL);
-                printf("  -u --mqtt-username <username>   MQTT username (default: `%s`)\n", MQTT_USERNAME);
-                printf("  -p --mqtt-password <password>   MQTT password (default: `%s`)\n", MQTT_PASSWORD);
+                printf("  -t --tcp-url <url>       TCP connection string (default: `%s`)\n", TCP_URL);
+                printf("  -h --http-url <url>      HTTP connection string (default: `%s`)\n", HTTP_URL);
+                printf("  -m --mqtt-url <url>      MQTT connection string (default: `%s`)\n", MQTT_URL);
+                printf("  -u --username <username> Username for both HTTP and MQTT (default: `%s`)\n", MQTT_USERNAME);
+                printf("  -p --password <password> Password for both HTTP and MQTT (default: `%s`)\n", MQTT_PASSWORD);
                 printf("\n");
-                printf("  -l --poll <ms>                  Poll interval (default: %u ms)\n", POLL_MS);
+                printf("  -l --poll <ms>           Poll interval (default: %u ms)\n", POLL_MS);
 
                 exit(0);
         }
