@@ -356,7 +356,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
                 if(period_len > 0)
                 {
-                    memcpy(conn->data, period_buf, period_len);
+                    memcpy(conn->data, period_buf, (size_t) period_len + 1);
                 }
                 else
                 {
