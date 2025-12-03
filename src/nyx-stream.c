@@ -556,7 +556,7 @@ static void retry_timer_handler(void *arg)
         }
         else
         {
-            MG_INFO(("Connected to %s", MQTT_URL));
+            MG_INFO(("MQTT connected to %s", MQTT_URL));
         }
     }
 
