@@ -725,7 +725,7 @@ int main(const int argc, str_t *argv)
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    signal(SIGINT,  signal_handler);
+    signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
     while(s_signo == 0)
