@@ -667,13 +667,13 @@ static void parse_args(const int argc, str_t *argv)
             default:
                 printf("Usage: %s [options]\n", argv[0]);
                 printf("\n");
-                printf("  -t --tcp-url <url>       TCP connection string (default: `%s`)\n", TCP_URL);
-                printf("  -h --http-url <url>      HTTP connection string (default: `%s`)\n", HTTP_URL);
-                printf("  -m --mqtt-url <url>      MQTT connection string (default: `%s`)\n", MQTT_URL);
-                printf("  -u --username <username> Username for both HTTP and MQTT (default: `%s`)\n", MQTT_USERNAME);
-                printf("  -p --password <password> Password for both HTTP and MQTT (default: `%s`)\n", MQTT_PASSWORD);
+                printf("  -t --tcp-url <url>        TCP connection string (default: `%s`)\n", TCP_URL);
+                printf("  -h --http-url <url>       HTTP connection string (default: `%s`)\n", HTTP_URL);
+                printf("  -m --mqtt-url <url>       MQTT connection string (default: `%s`)\n", MQTT_URL);
+                printf("  -u --username <username>  Username for both HTTP and MQTT (default: `%s`)\n", MQTT_USERNAME);
+                printf("  -p --password <password>  Password for both HTTP and MQTT (default: `%s`)\n", MQTT_PASSWORD);
                 printf("\n");
-                printf("  -l --poll <ms>           Poll interval (default: %u ms)\n", POLL_MS);
+                printf("  -l --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
 
                 exit(0);
         }
