@@ -446,7 +446,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
 
         uint32_t period_ms = 0U;
 
-        if(((char *) conn->data)[0] != '\0')
+        if(*(str_t) conn->data != '\0')
         {
             period_ms = mg_str_to_uint32(mg_str(conn->data), 0U);
         }
@@ -627,6 +627,7 @@ static void parse_args(const int argc, str_t *argv)
         {"tcp-url",         required_argument, 0, 't'},
         {"http-url",        required_argument, 0, 'h'},
         {"mqtt-url",        required_argument, 0, 'm'},
+        /**/
         {"mqtt-username",   optional_argument, 0, 'u'},
         {"mqtt-password",   optional_argument, 0, 'p'},
         /**/
@@ -643,7 +644,7 @@ static void parse_args(const int argc, str_t *argv)
     {
         /*------------------------------------------------------------------------------------------------------------*/
 
-        const int opt = getopt_long(argc, argv, "t:h:U:P:m:u:p:l:", long_options, NULL);
+        const int opt = getopt_long(argc, argv, "t:h:m:u:p:l:", long_options, NULL);
 
         if(opt < 0)
         {
@@ -657,6 +658,7 @@ static void parse_args(const int argc, str_t *argv)
             case 't': TCP_URL       = optarg; break;
             case 'h': HTTP_URL      = optarg; break;
             case 'm': MQTT_URL      = optarg; break;
+
             case 'u': MQTT_USERNAME = optarg; break;
             case 'p': MQTT_PASSWORD = optarg; break;
 
