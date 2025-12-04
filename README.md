@@ -16,8 +16,8 @@
 
 The `Nyx` project introduces a protocol, backward-compatible with [INDI 1.7](docs/specs/INDI.pdf) (and [indiserver](http://docs.indilib.org/indiserver/)), for controlling
 astronomical hardware. It enhances INDI by supporting multiple independent nodes, each with its own embedded protocol
-stack. Nodes can communicate via an [MQTT](https://mqtt.org/) broker, a dedicated stream system for real time
-visualization, or directly over TCP, offering flexibility and scalability for distributed systems.
+stack. Nodes can communicate via an [MQTT](https://mqtt.org/) broker, a dedicated stream system for real time visualization, or
+directly over TCP, offering flexibility and scalability for distributed systems.
 
 This is the repository of the data stream server for the Nyx ecosystem.
 
