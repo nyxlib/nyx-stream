@@ -221,11 +221,13 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
 
         while(iobuf->len - off >= STREAM_HEADER_SIZE)
         {
-            const uint8_t *buff = (const uint8_t *) iobuf->buf + off;
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            const uint8_t *frame_buff = (const uint8_t *) iobuf->buf + off;
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            const uint32_t magic = nyx_read_u32_le(buff + 0);
+            const uint32_t magic = nyx_read_u32_le(frame_buff + 0);
 
             if(magic != NYX_STREAM_MAGIC)
             {
@@ -234,24 +236,24 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
                 continue;
             }
 
-            const uint32_t stream_hash = nyx_read_u32_le(buff + 4);
-            const uint32_t payload_size = nyx_read_u32_le(buff + 8);
+            const uint32_t stream_hash = nyx_read_u32_le(frame_buff + 4);
+            const uint32_t payload_size = nyx_read_u32_le(frame_buff + 8);
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            if(payload_size > 0x00)
+            const size_t frame_size = STREAM_HEADER_SIZE + (size_t) payload_size;
+
+            if(iobuf->len - off < frame_size)
             {
-                if(payload_size > iobuf->len - off - STREAM_HEADER_SIZE)
-                {
-                    /* Incomplete frame, wait... */
+                /* Incomplete frame, wait... */
 
-                    break;
-                }
+                break;
+            }
 
-                /*----------------------------------------------------------------------------------------------------*/
+            /*--------------------------------------------------------------------------------------------------------*/
 
-                BUFF_t payload_buff = buff + STREAM_HEADER_SIZE;
-
+            if(payload_size > 0U)
+            {
                 /*----------------------------------------------------------------------------------------------------*/
 
                 const uint64_t now = mg_millis();
@@ -264,8 +266,8 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
                     {
                         mg_ws_send(
                             client->conn,
-                            payload_buff,
-                            payload_size,
+                            frame_buff,
+                            frame_size,
                             WEBSOCKET_OP_BINARY
                         );
 
@@ -278,7 +280,7 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            off += STREAM_HEADER_SIZE + payload_size;
+            off += frame_size;
 
             /*--------------------------------------------------------------------------------------------------------*/
         }
