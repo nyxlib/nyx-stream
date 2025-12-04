@@ -228,6 +228,8 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
             /*--------------------------------------------------------------------------------------------------------*/
 
             const uint32_t magic = nyx_read_u32_le(frame_buff + 0);
+            const uint32_t stream_hash = nyx_read_u32_le(frame_buff + 4);
+            const uint32_t payload_size = nyx_read_u32_le(frame_buff + 8);
 
             if(magic != NYX_STREAM_MAGIC)
             {
@@ -235,9 +237,6 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
 
                 continue;
             }
-
-            const uint32_t stream_hash = nyx_read_u32_le(frame_buff + 4);
-            const uint32_t payload_size = nyx_read_u32_le(frame_buff + 8);
 
             /*--------------------------------------------------------------------------------------------------------*/
 
