@@ -22,6 +22,12 @@ directly over TCP, offering flexibility and scalability for distributed systems.
 
 This is the repository of the data stream server for the Nyx ecosystem.
 
+# Typical architecture
+
+<div style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/nyxlib/nyx-node/refs/heads/main/docs/img/nyx.svg" style="width: 600px;" />
+</div> 
+
 # Build instructions
 
 ```bash
