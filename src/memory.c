@@ -13,6 +13,16 @@
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+#ifdef HAVE_MALLOC_SIZE
+size_t malloc_size(void *);
+#endif
+
+#ifdef HAVE_MALLOC_USABLE_SIZE
+size_t malloc_usable_size(void *);
+#endif
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 size_t nyx_memory_free(buff_t buff)
 {
     if(buff == NULL)

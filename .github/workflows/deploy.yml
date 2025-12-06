@@ -1,0 +1,64 @@
+name: Build and Deploy
+
+on:
+    push:
+        branches:
+            - main
+
+concurrency:
+    group: ${{ github.repository }}
+    cancel-in-progress: true
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        container:
+            image: ubuntu:24.04
+
+        steps:
+            -   name: Install dependencies
+                run: |
+                    apt-get update
+                    apt-get install -y gcc git bash make unzip openssh-client
+
+            -   name: Checkout repository
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
+
+            -   name: Build and test project
+                shell: bash
+                run: |
+                    mkdir -p build
+                    cd build
+
+                    cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+                    make all
+
+            -   name: SonarQube Scan
+                uses: SonarSource/sonarqube-scan-action@v6
+                env:
+                    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+            -   name: Deploy project
+                shell: bash
+                env:
+                    SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+                    DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+                    DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+                run: |
+                    export HOME=/root
+                    
+                    mkdir -p ~/.ssh/
+                    chmod 700 ~/.ssh/
+                    
+                    echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+                    chmod 600 ~/.ssh/id_rsa
+                    
+                    eval $(ssh-agent -s)
+                    ssh-add ~/.ssh/id_rsa
+                    
+                    ssh-keyscan -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts
+                    chmod 644 ~/.ssh/known_hosts
+                    
+                    scp ./bin/nyx-stream "${DEPLOY_USER}@${DEPLOY_HOST}:/var/www/nyxlib.org/download/linux/x86_64/"
