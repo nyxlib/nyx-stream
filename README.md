@@ -25,6 +25,10 @@ This is the repository of the data stream server for the Nyx ecosystem.
 # Build instructions
 
 ```bash
+mkdir build
+cd build
+
+cmake ..
 make
 sudo make install
 ```
