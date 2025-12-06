@@ -61,4 +61,4 @@ jobs:
                     ssh-keyscan -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts
                     chmod 644 ~/.ssh/known_hosts
                     
-                    scp ./bin/nyx-stream "${DEPLOY_USER}@${DEPLOY_HOST}:/var/www/nyxlib.org/download/linux/x86_64/"
+                    scp ./build/nyx-stream "${DEPLOY_USER}@${DEPLOY_HOST}:/var/www/nyxlib.org/download/linux/x86_64/"
