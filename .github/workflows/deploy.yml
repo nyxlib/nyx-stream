@@ -19,7 +19,7 @@ jobs:
             -   name: Install dependencies
                 run: |
                     apt-get update
-                    apt-get install -y gcc git bash make unzip openssh-client
+                    apt-get install -y gcc git bash make cmake unzip openssh-client
 
             -   name: Checkout repository
                 uses: actions/checkout@v4
