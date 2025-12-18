@@ -28,8 +28,6 @@ static str_t MQTT_URL = "mqtt://127.0.0.1:1883";
 static str_t MQTT_USERNAME = "";
 static str_t MQTT_PASSWORD = "";
 
-/*--------------------------------------------------------------------------------------------------------------------*/
-
 static char TOKEN[17] = "";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -226,11 +224,11 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            const uint32_t magic = nyx_read_u32_le(frame_buff + 0);
-            const uint32_t stream_hash = nyx_read_u32_le(frame_buff + 4);
-            const uint32_t payload_size = nyx_read_u32_le(frame_buff + 8);
+            const uint32_t header_magic = nyx_read_u32_le(frame_buff + 0);
+            const uint32_t stream_hash  = nyx_read_u32_le(frame_buff + 4);
+            const uint32_t stream_size  = nyx_read_u32_le(frame_buff + 8);
 
-            if(magic != STREAM_MAGIC)
+            if(header_magic != STREAM_MAGIC)
             {
                 off += 1U;
 
@@ -239,7 +237,7 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            const size_t frame_size = STREAM_HEADER_SIZE + (size_t) payload_size;
+            const size_t frame_size = STREAM_HEADER_SIZE + (size_t) stream_size;
 
             if(iobuf->len - off < frame_size)
             {
@@ -250,7 +248,7 @@ static void tcp_handler(struct mg_connection *conn, int event, __NYX_UNUSED__ vo
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            if(payload_size > 0U)
+            if(stream_size > 0U)
             {
                 /*----------------------------------------------------------------------------------------------------*/
 
