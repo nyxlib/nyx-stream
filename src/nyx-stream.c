@@ -322,7 +322,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
             const int token_len = mg_http_get_var(
                 &hm->query,
                 "token",
-                /*--*/(token_buf),
+                buffof(token_buf),
                 sizeof(token_buf)
             );
 
@@ -351,7 +351,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 const int period_len = mg_http_get_var(
                     &hm->query,
                     "period",
-                    /*--*/(period_buf),
+                    buffof(period_buf),
                     sizeof(period_buf)
                 );
 
