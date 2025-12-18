@@ -30,7 +30,7 @@ static str_t MQTT_PASSWORD = "";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-static char STREAM_TOKEN[17] = "";
+static char TOKEN[17] = "";
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -315,7 +315,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
         /* AUTHENTICATION                                                                                             */
         /*------------------------------------------------------------------------------------------------------------*/
 
-        if(STREAM_TOKEN[0] != '\0')
+        if(TOKEN[0] != '\0')
         {
             char token_buf[32];
 
@@ -326,7 +326,7 @@ static void http_handler(struct mg_connection *conn, int event, void *event_data
                 sizeof(token_buf)
             );
 
-            if(token_len != 16 || memcmp(token_buf, STREAM_TOKEN, 16) != 0)
+            if(token_len != 16 || memcmp(token_buf, TOKEN, 16) != 0)
             {
                 mg_http_reply(conn, 403, "Access-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\n", "Unauthorized\n");
 
@@ -716,7 +716,7 @@ static void parse_args(const int argc, str_t *argv)
        ||
        MQTT_PASSWORD[0] != '\0'
     ) {
-        compute_token(STREAM_TOKEN, MQTT_USERNAME, MQTT_PASSWORD);
+        compute_token(TOKEN, MQTT_USERNAME, MQTT_PASSWORD);
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
