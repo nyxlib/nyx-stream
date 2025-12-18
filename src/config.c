@@ -11,6 +11,10 @@
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+#define CONFIG_PATH "/etc/nyx-stream/config.json"
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 static bool _read_file(const char *path, size_t *size_out, buff_t *buff_out)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -61,9 +65,9 @@ bool nyx_load_config(
     size_t size;
     buff_t buff;
 
-    if(_read_file(NYX_CONFIG_PATH, &size, &buff) == false)
+    if(_read_file(CONFIG_PATH, &size, &buff) == false)
     {
-        MG_ERROR(("Cannot read file `%s`", NYX_CONFIG_PATH));
+        MG_ERROR(("Cannot read file `%s`", CONFIG_PATH));
 
         return false;
     }

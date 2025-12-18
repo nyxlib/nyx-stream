@@ -73,10 +73,6 @@ uint32_t nyx_hash(__NYX_ZEROABLE__ size_t size, __NYX_NULLABLE__ BUFF_t buff, ui
 /* CONFIG                                                                                                             */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-#define NYX_CONFIG_PATH "/etc/nyx-stream/config.json"
-
-/*--------------------------------------------------------------------------------------------------------------------*/
-
 bool nyx_load_config(
     str_t *tcp_url,
     str_t *http_url,
