@@ -624,6 +624,33 @@ static void parse_args(const int argc, str_t *argv)
 {
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    str_t tcp_url;
+    str_t http_url;
+    str_t mqtt_url;
+    str_t mqtt_username;
+    str_t mqtt_password;
+    str_t poll_ms;
+
+    if(nyx_load_config(
+        &tcp_url,
+        &http_url,
+        &mqtt_url,
+        &mqtt_username,
+        &mqtt_password,
+        &poll_ms
+    )) {
+        if(tcp_url != NULL) TCP_URL = tcp_url;
+        if(http_url != NULL) HTTP_URL = http_url;
+        if(mqtt_url != NULL) MQTT_URL = mqtt_url;
+
+        if(mqtt_username != NULL) MQTT_USERNAME = mqtt_username;
+        if(mqtt_password != NULL) MQTT_PASSWORD = mqtt_password;
+
+        if(poll_ms != NULL) mg_str_to_uint32(mg_str(optarg), POLL_MS);
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     static struct option long_options[] = {
         {"tcp-url",  required_argument, 0, 't'},
         {"http-url", required_argument, 0, 'h'},
@@ -671,8 +698,9 @@ static void parse_args(const int argc, str_t *argv)
                 printf("  -t --tcp-url <url>        TCP connection string (default: `%s`)\n", TCP_URL);
                 printf("  -h --http-url <url>       HTTP connection string (default: `%s`)\n", HTTP_URL);
                 printf("  -m --mqtt-url <url>       MQTT connection string (default: `%s`)\n", MQTT_URL);
-                printf("  -u --username <username>  Username for both HTTP and MQTT (default: `%s`)\n", MQTT_USERNAME);
-                printf("  -p --password <password>  Password for both HTTP and MQTT (default: `%s`)\n", MQTT_PASSWORD);
+                printf("\n");
+                printf("  -u --username <username>  Username for both HTTP and MQTT\n");
+                printf("  -p --password <password>  Password for both HTTP and MQTT\n");
                 printf("\n");
                 printf("  -l --poll <ms>            Poll interval (default: %u ms)\n", POLL_MS);
 
