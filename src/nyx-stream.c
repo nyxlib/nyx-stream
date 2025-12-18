@@ -140,7 +140,6 @@ static void add_client(struct mg_connection *conn, const struct mg_str stream, c
     /*----------------------------------------------------------------------------------------------------------------*/
 
     client->hash = hash;
-
     client->period_ms = period_ms;
     client->last_send_ms = 0x0000LLU;
 
