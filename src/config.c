@@ -81,8 +81,8 @@ bool nyx_load_config(
     *tcp_url = mg_json_get_str(json, "$.tcp_url");
     *http_url = mg_json_get_str(json, "$.http_url");
     *mqtt_url = mg_json_get_str(json, "$.mqtt_url");
-    *mqtt_username = mg_json_get_str(json, "$.username");
-    *mqtt_password = mg_json_get_str(json, "$.password");
+    *mqtt_username = mg_json_get_str(json, "$.mqtt_username");
+    *mqtt_password = mg_json_get_str(json, "$.mqtt_password");
     *poll_ms = mg_json_get_str(json, "$.poll_ms");
 
     /*----------------------------------------------------------------------------------------------------------------*/
