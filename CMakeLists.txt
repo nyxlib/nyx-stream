@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.5)
 
 ########################################################################################################################
 
-project(nyx_node
+project(nyx_stream
     VERSION 1.0.0
     LANGUAGES C
 )
