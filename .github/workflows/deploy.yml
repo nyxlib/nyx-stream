@@ -22,7 +22,7 @@ jobs:
                     apt-get install -y gcc git bash make cmake unzip openssh-client
 
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v6
                 with:
                     fetch-depth: 0
 
